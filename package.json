@@ -8,18 +8,24 @@
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "tsc && tsc -m es6 --outDir lib-esm",
+    "mocha": "mocha -r ts-node/register test/**/*.ts --exit",
     "test": "./test.sh"
   },
   "devDependencies": {
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
     "@types/mysql2": "github:types/mysql2",
     "@types/node": "^12.12.2",
     "@typescript-eslint/eslint-plugin": "^2.24.0",
+    "chai": "^4.2.0",
     "eslint": "^6.7.1",
     "eslint-config-standard-with-typescript": "^15.0.0",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-node": "^10.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
+    "mocha": "^7.1.1",
+    "ts-node": "^8.7.0",
     "typescript": "^3.8.3"
   },
   "dependencies": {
