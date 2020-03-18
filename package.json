@@ -1,0 +1,47 @@
+{
+  "name": "txstate-mysql",
+  "version": "1.0.0",
+  "description": "A wrapper for mysql2 for added convenience and incorporating some txstate conventions.",
+  "main": "lib/index.js",
+  "module": "lib-esm/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc && tsc -m es6 --outDir lib-esm",
+    "test": "./test.sh"
+  },
+  "devDependencies": {
+    "@types/mysql2": "github:types/mysql2",
+    "@types/node": "^12.12.2",
+    "@typescript-eslint/eslint-plugin": "^2.24.0",
+    "eslint": "^6.7.1",
+    "eslint-config-standard-with-typescript": "^15.0.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "mysql2": "^2.1.0",
+    "txstate-utils": "^1.1.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/txstate-etc/txstate-mysql.git"
+  },
+  "keywords": [
+    "mysql",
+    "txstate"
+  ],
+  "author": "Nick Wing",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/txstate-etc/txstate-mysql/issues"
+  },
+  "homepage": "https://github.com/txstate-etc/txstate-mysql#readme",
+  "files": [
+    "lib/**/*",
+    "lib-esm/**/*"
+  ]
+}
