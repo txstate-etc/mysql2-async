@@ -7,7 +7,8 @@ export interface DbConfig {
   user: string
   password: string
   database: string
-  skiptzfix: boolean
+  skiptzfix?: boolean
+  connectionLimit?: number
 }
 
 export class Queryable {
@@ -82,19 +83,27 @@ export class Db extends Queryable {
   protected pool: Pool
 
   constructor (config?: DbConfig) {
-    const skiptzfix = (config?.skiptzfix ?? false) || Boolean(process.env.MYSQL_SKIPTZFIX)
-    const pool = mysql.createPool({
+    const resolvedConfig: DbConfig = {
       host: config?.host ?? process.env.MYSQL_HOST ?? process.env.DB_HOST ?? 'mysql',
       user: config?.user ?? process.env.MYSQL_USER ?? process.env.DB_USER ?? 'root',
       password: config?.password ?? process.env.MYSQL_PASS ?? process.env.DB_PASS ?? 'secret',
       database: config?.database ?? process.env.MYSQL_DATABASE ?? process.env.DB_DATABASE ?? 'default_database',
+      skiptzfix: (config?.skiptzfix ?? false) || Boolean(process.env.MYSQL_SKIPTZFIX),
+      connectionLimit: config?.connectionLimit ?? parseInt(process.env.MYSQL_POOL_SIZE ?? process.env.DB_POOL_SIZE ?? '10')
+    }
+    const pool = mysql.createPool({
+      host: resolvedConfig.host,
+      user: resolvedConfig.user,
+      password: resolvedConfig.password,
+      database: resolvedConfig.database,
+      connectionLimit: resolvedConfig.connectionLimit,
       // client side connectTimeout is unstable in mysql2 library
       // it throws an error you can't catch and crashes node
       // best to leave this at 0 (disabled)
       connectTimeout: 0,
-      ...(skiptzfix ? { timezone: 'Z' } : {})
+      ...(resolvedConfig.skiptzfix ? { timezone: 'Z' } : {})
     })
-    if (!skiptzfix) {
+    if (!resolvedConfig.skiptzfix) {
       pool.on('connection', function (connection) {
         connection.query('SET time_zone="UTC"')
       })
