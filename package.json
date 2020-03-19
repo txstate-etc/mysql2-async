@@ -7,7 +7,7 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "tsc && tsc -m es6 --outDir lib-esm",
+    "build": "tsc && tsc -m es6 --outDir lib-esm --moduleResolution node",
     "mocha": "mocha -r ts-node/register test/**/*.ts --exit",
     "test": "./test.sh"
   },

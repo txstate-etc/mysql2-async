@@ -11,6 +11,8 @@ export interface DbConfig {
   connectionLimit?: number
 }
 
+type BindParam = string|number
+
 export class Queryable {
   protected conn: PoolConnection | Pool
 
@@ -18,7 +20,7 @@ export class Queryable {
     this.conn = conn
   }
 
-  protected async query (sql: string, ...binds: any[]): Promise<RowDataPacket[] | OkPacket> {
+  protected async query (sql: string, binds: BindParam[]): Promise<RowDataPacket[] | OkPacket> {
     return new Promise((resolve, reject) => {
       this.conn.query(sql, binds, (err, result) => {
         if (err) reject(err)
@@ -27,41 +29,41 @@ export class Queryable {
     })
   }
 
-  async getval (sql: string, ...binds: any[]) {
+  async getval (sql: string, ...binds: BindParam[]) {
     const row = await this.getrow(sql, ...binds)
     if (row) return Object.values(row)[0]
     return undefined
   }
 
-  async getrow (sql: string, ...binds: any[]) {
+  async getrow (sql: string, ...binds: BindParam[]) {
     const results = await this.getall(sql, ...binds)
     if (results?.length > 0) return results?.[0]
     return undefined
   }
 
-  async getall (sql: string, ...binds: any[]) {
+  async getall (sql: string, ...binds: BindParam[]) {
     const results = await this.query(sql, binds)
     return results as RowDataPacket[]
   }
 
-  async execute (sql: string, ...binds: any[]) {
+  async execute (sql: string, ...binds: BindParam[]) {
     await this.query(sql, binds)
     return true
   }
 
-  async update (sql: string, ...binds: any[]) {
+  async update (sql: string, ...binds: BindParam[]) {
     const result = await this.query(sql, binds)
     return (result as OkPacket).changedRows
   }
 
-  async insert (sql: string, ...binds: any[]) {
+  async insert (sql: string, ...binds: BindParam[]) {
     const result = await this.query(sql, binds)
     return (result as OkPacket).insertId
   }
 
-  stream (sql: string, ...binds: any[]): Readable
-  stream (options: { highWaterMark?: number, objectMode?: boolean }, sql: string, ...binds: any[]): Readable
-  stream (optionsOrSql: any, sqlOrFirstBind: any, ...binds: any[]) {
+  stream (sql: string, ...binds: BindParam[]): Readable
+  stream (options: { highWaterMark?: number, objectMode?: boolean }, sql: string, ...binds: BindParam[]): Readable
+  stream (optionsOrSql: any, sqlOrFirstBind: any, ...binds: BindParam[]) {
     let sql, options
     if (typeof optionsOrSql === 'string') {
       sql = optionsOrSql
@@ -71,7 +73,7 @@ export class Queryable {
       options = optionsOrSql
     }
     const opts = {
-      highWaterMark: options?.highWaterMark ?? 1000,
+      highWaterMark: options?.highWaterMark ?? 100,
       objectMode: options?.objectMode ?? true
     }
     const result = this.conn.query(sql, binds)
