@@ -34,6 +34,7 @@ describe('streaming tests', () => {
           throw new Error('Fail!')
         }
       } catch (e) {
+        expect(e.message).to.equal('Fail!')
         errorthrown = true
       }
     }
