@@ -11,6 +11,18 @@ describe('transaction tests', () => {
     })
   })
 
+  it('should be able to stream in a transaction', async () => {
+    await db.transaction(async db => {
+      const stream = db.stream('SELECT * FROM test')
+      let count = 0
+      for await (const row of stream) {
+        count++
+        expect(row?.name).to.match(/name \d+/)
+      }
+      expect(count).to.equal(1000)
+    })
+  })
+
   it('should commit what happens during a transaction', async () => {
     let id = 0
     await db.transaction(async db => {

@@ -13,11 +13,13 @@
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
+    "@types/chai-as-promised": "^7.1.0",
     "@types/mocha": "^7.0.2",
     "@types/mysql2": "github:types/mysql2",
     "@types/node": "^12.12.2",
     "@typescript-eslint/eslint-plugin": "^2.24.0",
     "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
     "eslint": "^6.7.1",
     "eslint-config-standard-with-typescript": "^15.0.0",
     "eslint-plugin-import": "^2.18.2",

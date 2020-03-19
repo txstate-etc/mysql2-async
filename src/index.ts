@@ -1,4 +1,4 @@
-import mysql, { Pool, PoolConnection, RowDataPacket, OkPacket } from 'mysql2'
+import mysql, { Pool, PoolConnection, RowDataPacket, OkPacket, Query } from 'mysql2'
 import { sleep } from 'txstate-utils'
 import { Readable } from 'stream'
 
@@ -13,7 +13,7 @@ export interface DbConfig {
 }
 
 export interface QueryOptions {
-  prepared?: boolean
+  saveAsPrepared?: boolean
 }
 
 export interface StreamOptions extends QueryOptions {
@@ -22,6 +22,42 @@ export interface StreamOptions extends QueryOptions {
 }
 
 type BindParam = any
+
+// implemented my own conversion to Readable stream because mysql2's is broken:
+// it calls stream.emit('close') while the consumer is still reading from the buffer
+// higher highWaterMark settings make it worse
+function stream (query: Query, options: StreamOptions) {
+  const anyquery = query as any
+  options = options || {}
+  options.objectMode = true
+  let canceled = false
+  const stream = new Readable(options)
+  stream._read = () => {
+    anyquery._connection && anyquery._connection.resume()
+  }
+  stream._destroy = (err, cb) => {
+    if (err) stream.emit('error', err)
+    canceled = true
+    stream.push(null)
+    anyquery._connection.resume()
+    cb()
+  }
+  query.on('result', row => {
+    if (canceled) return
+    if (!stream.push(row)) {
+      anyquery._connection.pause()
+    }
+  })
+  query.on('error', err => {
+    if (canceled) return
+    stream.emit('error', err)
+  })
+  query.on('end', () => {
+    if (canceled) return
+    stream.push(null)
+  })
+  return stream
+}
 
 export class Queryable {
   protected conn: PoolConnection | Pool
@@ -32,7 +68,7 @@ export class Queryable {
 
   async query (sql: string, binds?: BindParam[], options?: QueryOptions): Promise<RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[]> {
     return new Promise((resolve, reject) => {
-      if (options?.prepared) {
+      if (options?.saveAsPrepared) {
         this.conn.execute(sql, binds, (err, result) => {
           if (err) reject(err)
           else resolve(result)
@@ -88,8 +124,8 @@ export class Queryable {
     } else {
       binds = bindsOrOptions
     }
-    const result = options?.prepared ? this.conn.execute(sql, binds) : this.conn.query(sql, binds)
-    return result.stream(options ?? {})
+    const result = options?.saveAsPrepared ? this.conn.execute(sql, binds) : this.conn.query(sql, binds)
+    return stream(result, options ?? {})
   }
 
   iterator (sql: string, options: StreamOptions): AsyncIterableIterator<RowDataPacket>

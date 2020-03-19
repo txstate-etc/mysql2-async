@@ -16,6 +16,6 @@ describe('iterator tests', () => {
         count++
       }
     }
-    expect(count).to.equal(1000)
+    expect(count).to.equal(1001)
   })
 })
