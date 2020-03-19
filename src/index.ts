@@ -8,10 +8,20 @@ export interface DbConfig {
   password: string
   database: string
   skiptzfix?: boolean
-  connectionLimit?: number
+  connectionLimit?:
+  number
 }
 
-type BindParam = string|number
+export interface QueryOptions {
+  prepared?: boolean
+}
+
+export interface StreamOptions extends QueryOptions {
+  highWaterMark?: number
+  objectMode?: boolean
+}
+
+type BindParam = any
 
 export class Queryable {
   protected conn: PoolConnection | Pool
@@ -20,64 +30,73 @@ export class Queryable {
     this.conn = conn
   }
 
-  protected async query (sql: string, binds: BindParam[]): Promise<RowDataPacket[] | OkPacket> {
+  async query (sql: string, binds?: BindParam[], options?: QueryOptions): Promise<RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[]> {
     return new Promise((resolve, reject) => {
-      this.conn.query(sql, binds, (err, result) => {
-        if (err) reject(err)
-        else resolve(result as RowDataPacket[] | OkPacket)
-      })
+      if (options?.prepared) {
+        this.conn.execute(sql, binds, (err, result) => {
+          if (err) reject(err)
+          else resolve(result)
+        })
+      } else {
+        this.conn.query(sql, binds, (err, result) => {
+          if (err) reject(err)
+          else resolve(result)
+        })
+      }
     })
   }
 
-  async getval (sql: string, ...binds: BindParam[]) {
-    const row = await this.getrow(sql, ...binds)
+  async getval (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    const row = await this.getrow(sql, binds, options)
     if (row) return Object.values(row)[0]
     return undefined
   }
 
-  async getrow (sql: string, ...binds: BindParam[]) {
-    const results = await this.getall(sql, ...binds)
+  async getrow (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    const results = await this.getall(sql, binds, options)
     if (results?.length > 0) return results?.[0]
     return undefined
   }
 
-  async getall (sql: string, ...binds: BindParam[]) {
-    const results = await this.query(sql, binds)
+  async getall (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    const results = await this.query(sql, binds, options)
     return results as RowDataPacket[]
   }
 
-  async execute (sql: string, ...binds: BindParam[]) {
-    await this.query(sql, binds)
+  async execute (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    await this.query(sql, binds, options)
     return true
   }
 
-  async update (sql: string, ...binds: BindParam[]) {
-    const result = await this.query(sql, binds)
+  async update (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    const result = await this.query(sql, binds, options)
     return (result as OkPacket).changedRows
   }
 
-  async insert (sql: string, ...binds: BindParam[]) {
-    const result = await this.query(sql, binds)
+  async insert (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    const result = await this.query(sql, binds, options)
     return (result as OkPacket).insertId
   }
 
-  stream (sql: string, ...binds: BindParam[]): Readable
-  stream (options: { highWaterMark?: number, objectMode?: boolean }, sql: string, ...binds: BindParam[]): Readable
-  stream (optionsOrSql: any, sqlOrFirstBind: any, ...binds: BindParam[]) {
-    let sql, options
-    if (typeof optionsOrSql === 'string') {
-      sql = optionsOrSql
-      binds.unshift(sqlOrFirstBind)
+  stream (sql: string, options: StreamOptions): Readable
+  stream (sql: string, binds?: BindParam[], options?: StreamOptions): Readable
+  stream (sql: string, bindsOrOptions: any, options?: StreamOptions) {
+    let binds
+    if (!options && (bindsOrOptions?.highWaterMark || bindsOrOptions?.objectMode)) {
+      options = bindsOrOptions
+      binds = []
     } else {
-      sql = sqlOrFirstBind
-      options = optionsOrSql
+      binds = bindsOrOptions
     }
-    const opts = {
-      highWaterMark: options?.highWaterMark ?? 100,
-      objectMode: options?.objectMode ?? true
-    }
-    const result = this.conn.query(sql, binds)
-    return result.stream(opts)
+    const result = options?.prepared ? this.conn.execute(sql, binds) : this.conn.query(sql, binds)
+    return result.stream(options ?? {})
+  }
+
+  iterator (sql: string, options: StreamOptions): AsyncIterableIterator<RowDataPacket>
+  iterator (sql: string, binds?: BindParam[], options?: StreamOptions): AsyncIterableIterator<RowDataPacket>
+  iterator (sql: string, bindsOrOptions: any, options?: StreamOptions) {
+    const ret = this.stream(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
+    return ret
   }
 }
 

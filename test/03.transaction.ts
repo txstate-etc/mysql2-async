@@ -6,7 +6,7 @@ import db from '../src'
 describe('transaction tests', () => {
   it('should be able to run queries in a transaction', async () => {
     await db.transaction(async db => {
-      const row = await db.getrow('SELECT * FROM test WHERE name=?', 'name 5')
+      const row = await db.getrow('SELECT * FROM test WHERE name=?', ['name 5'])
       expect(row?.name).to.equal('name 5')
     })
   })
@@ -14,10 +14,10 @@ describe('transaction tests', () => {
   it('should commit what happens during a transaction', async () => {
     let id = 0
     await db.transaction(async db => {
-      id = await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', 'name 2000')
+      id = await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', ['name 2000'])
       expect(id).to.be.greaterThan(0)
     })
-    const row = await db.getrow('SELECT * FROM test WHERE id=?', id)
+    const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
     expect(row?.name).to.equal('name 2000')
   })
 
@@ -25,23 +25,23 @@ describe('transaction tests', () => {
     let id = 0
     try {
       await db.transaction(async db => {
-        id = await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', 'name 2001')
+        id = await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', ['name 2001'])
         expect(id).to.be.greaterThan(0)
-        const row = await db.getrow('SELECT * FROM test WHERE id=?', id)
+        const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
         expect(row?.name).to.equal('name 2001')
         throw new Error('Fail!')
       })
     } catch (e) {
       expect(e.message).to.equal('Fail!')
     }
-    const row = await db.getrow('SELECT * FROM test WHERE id=?', id)
+    const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
     expect(row).to.be.undefined
   })
 
   it('should properly release connections back to the pool', async () => {
     for (let i = 0; i < 15; i++) {
       await db.transaction(async db => {
-        const row = await db.getrow('SELECT * FROM test WHERE name=?', `name ${i}`)
+        const row = await db.getrow('SELECT * FROM test WHERE name=?', [`name ${i}`])
         expect(row?.name).to.equal(`name ${i}`)
       })
     }
@@ -54,7 +54,7 @@ describe('transaction tests', () => {
     for (let i = 0; i < 15; i++) {
       try {
         await db.transaction(async db => {
-          const row = await db.getrow('SELECT * FROM test WHERE name=?', `name ${i}`)
+          const row = await db.getrow('SELECT * FROM test WHERE name=?', [`name ${i}`])
           expect(row?.name).to.equal(`name ${i}`)
           throw new Error('Fail!')
         })
