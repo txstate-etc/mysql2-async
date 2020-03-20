@@ -10,5 +10,7 @@ COPY tsconfig.json ./
 COPY src src
 COPY test test
 
+ENV TZ=America/Chicago
+
 ENTRYPOINT [ "npm" ]
-CMD [ "run", "mocha" ]
+CMD [ "run", "mocha", "--silent" ]
