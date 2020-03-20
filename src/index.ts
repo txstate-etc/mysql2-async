@@ -30,7 +30,6 @@ function stream (query: Query, options: StreamOptions) {
   stream._destroy = (err, cb) => {
     if (err) stream.emit('error', err)
     canceled = true
-    stream.push(null)
     anyquery._connection.resume()
     cb()
   }
