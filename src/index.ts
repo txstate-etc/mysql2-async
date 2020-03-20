@@ -127,7 +127,7 @@ export class Queryable {
   }
 }
 
-export class Db extends Queryable {
+export default class Db extends Queryable {
   protected pool: Pool
 
   constructor (config?: DbConfig) {
@@ -192,5 +192,3 @@ export class Db extends Queryable {
     }
   }
 }
-
-export default new Db()

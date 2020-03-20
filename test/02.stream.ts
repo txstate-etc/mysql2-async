@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* global describe, it */
 import { expect } from 'chai'
-import db from '../src'
+import db from '../src/db'
 
 describe('streaming tests', () => {
   it('should be able to stream a row at a time', async () => {

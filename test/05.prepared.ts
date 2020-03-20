@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* global describe, it */
 import { expect } from 'chai'
-import db from '../src'
+import db from '../src/db'
 
 describe('prepared statements', () => {
   it('should be able to use prepared statements to get rows', async () => {
