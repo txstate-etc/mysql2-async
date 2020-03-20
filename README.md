@@ -15,7 +15,8 @@ This library has a few core principles:
 
 # Getting Started
 ## Standard connection
-Works just like creating a mysql2 pool. You will want to make a single pool and export it so that it can be imported all over your code.
+Works just like creating a mysql2 pool. You will want to make a single pool and export it so that it can
+be imported all over your code.
 ```javascript
 import Db from 'mysql2-async'
 export const db = new Db({
@@ -110,10 +111,26 @@ await db.transaction(async db => { // both queries below happen in the same tran
   await db.update('UPDATE mytable SET ...')
 })
 ```
-If you need to roll back, simply throw an error. Similarly, any query that throws an error will trigger a rollback.
+If you need to roll back, simply throw an error. Similarly, any query that throws an error will trigger
+a rollback.
 ```javascript
 await db.transaction(async db => { // both queries below happen in the same transaction
   const id = await db.insert('INSERT INTO user ...')
   throw new Error('oops!')
 }) // the INSERT will be rolled back and will not happen
 ```
+## Prepared Statements
+Prepared statements are nearly automatic, you just need to notate which queries need it. It's desirable to
+carefully pick a few complicated queries because each unique SQL string that uses prepared statement support
+will use up a small amount of resources on both client and server.
+```javascript
+await db.getrow('SELECT t1.*, t2.* FROM mytable t1, myothertable t2 WHERE ... complicated ...',
+  [ /* bind parameters */ ],
+  { saveAsPrepared: true }
+)
+```
+Now, future calls with this same SQL statement (before inserting bound parameters) will be able to skip the
+query planning stage on the mysql server and return data a little bit faster.
+
+Note that this is just a pass-through to mysql2's prepared statement implementation, so you can refer to
+their documentation / code for more details.
