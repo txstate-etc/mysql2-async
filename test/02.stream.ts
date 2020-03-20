@@ -5,7 +5,7 @@ import db from '../src/db'
 
 describe('streaming tests', () => {
   it('should be able to stream a row at a time', async () => {
-    const stream = db.stream('SELECT * FROM test')
+    const stream = db.stream<{ name: string }>('SELECT * FROM test')
     let count = 0
     for await (const row of stream) {
       count++

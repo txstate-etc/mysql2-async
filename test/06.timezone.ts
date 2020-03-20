@@ -5,8 +5,8 @@ import db from '../src/db'
 
 describe('timezone tests', () => {
   it('should store dates as UTC', async () => {
-    const tz = await db.getval('SELECT modified FROM test LIMIT 1')
+    const tz = await db.getval<Date>('SELECT modified FROM test LIMIT 1')
     expect(tz).to.be.a('Date')
-    expect(new Date().getTime() - tz.getTime()).to.be.lessThan(5000)
+    expect(new Date().getTime() - tz!.getTime()).to.be.lessThan(5000)
   })
 })

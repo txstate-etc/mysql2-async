@@ -15,18 +15,23 @@ export interface StreamOptions extends QueryOptions {
 }
 
 type BindParam = any
+type ColTypes = any
+
+interface GenericReadable<T> extends Readable {
+  [Symbol.asyncIterator](): AsyncIterableIterator<T>
+}
 
 // implemented my own conversion to Readable stream because mysql2's is broken:
 // it calls stream.emit('close') while the consumer is still reading from the buffer
 // higher highWaterMark settings make it worse
-function stream (query: Query, options: StreamOptions) {
+function stream<ReturnType> (query: Query, options: StreamOptions) {
   const anyquery = query as any
   let canceled = false
-  const stream = new Readable({ ...options, objectMode: true })
+  const stream = new Readable({ ...options, objectMode: true }) as GenericReadable<ReturnType>
   stream._read = () => {
     anyquery._connection && anyquery._connection.resume()
   }
-  stream._destroy = (err, cb) => {
+  stream._destroy = (err: Error, cb) => {
     if (err) stream.emit('error', err)
     canceled = true
     anyquery._connection.resume()
@@ -72,21 +77,19 @@ export class Queryable {
     })
   }
 
-  async getval (sql: string, binds?: BindParam[], options?: QueryOptions) {
-    const row = await this.getrow(sql, binds, options)
+  async getval<ReturnType = ColTypes> (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    const row = await this.getrow<[ReturnType]>(sql, binds, options)
     if (row) return Object.values(row)[0]
-    return undefined
   }
 
-  async getrow (sql: string, binds?: BindParam[], options?: QueryOptions) {
-    const results = await this.getall(sql, binds, options)
+  async getrow<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: QueryOptions) {
+    const results = await this.getall<ReturnType>(sql, binds, options)
     if (results?.length > 0) return results?.[0]
-    return undefined
   }
 
-  async getall (sql: string, binds?: BindParam[], options?: QueryOptions) {
+  async getall<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: QueryOptions) {
     const results = await this.query(sql, binds, options)
-    return results as RowDataPacket[]
+    return results as ReturnType[]
   }
 
   async execute (sql: string, binds?: BindParam[], options?: QueryOptions) {
@@ -104,9 +107,9 @@ export class Queryable {
     return (result as OkPacket).insertId
   }
 
-  stream (sql: string, options: StreamOptions): Readable
-  stream (sql: string, binds?: BindParam[], options?: StreamOptions): Readable
-  stream (sql: string, bindsOrOptions: any, options?: StreamOptions) {
+  stream<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): GenericReadable<ReturnType>
+  stream<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: StreamOptions): GenericReadable<ReturnType>
+  stream<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
     let binds
     if (!options && (bindsOrOptions?.highWaterMark || bindsOrOptions?.objectMode)) {
       options = bindsOrOptions
@@ -115,13 +118,13 @@ export class Queryable {
       binds = bindsOrOptions
     }
     const result = options?.saveAsPrepared ? this.conn.execute({ ...options, sql, values: binds }) : this.conn.query({ ...options, sql, values: binds })
-    return stream(result, options ?? {})
+    return stream<ReturnType>(result, options ?? {})
   }
 
-  iterator (sql: string, options: StreamOptions): AsyncIterableIterator<RowDataPacket>
-  iterator (sql: string, binds?: BindParam[], options?: StreamOptions): AsyncIterableIterator<RowDataPacket>
-  iterator (sql: string, bindsOrOptions: any, options?: StreamOptions) {
-    const ret = this.stream(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
+  iterator<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): AsyncIterableIterator<RowDataPacket>
+  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: StreamOptions): AsyncIterableIterator<RowDataPacket>
+  iterator<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
+    const ret = this.stream<ReturnType>(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
     return ret
   }
 }

@@ -38,12 +38,12 @@ describe('basic tests', () => {
   })
 
   it('should be able to select a single row', async () => {
-    const row = await db.getrow('SELECT * FROM test WHERE name=?', ['name 3'])
+    const row = await db.getrow<{ name: string }>('SELECT * FROM test WHERE name=?', ['name 3'])
     expect(row?.name).to.equal('name 3')
   })
 
   it('should be able to select a single column in a single row', async () => {
-    const name = await db.getval('SELECT name FROM test WHERE name=?', ['name 3'])
+    const name = await db.getval<string>('SELECT name FROM test WHERE name=?', ['name 3'])
     expect(name).to.equal('name 3')
   })
 
