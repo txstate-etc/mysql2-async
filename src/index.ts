@@ -1,24 +1,18 @@
-import mysql, { Pool, PoolConnection, RowDataPacket, OkPacket, Query } from 'mysql2'
+import mysql, { Pool, PoolConnection, PoolOptions, RowDataPacket, OkPacket, Query } from 'mysql2'
 import { sleep } from 'txstate-utils'
 import { Readable } from 'stream'
 
-export interface DbConfig {
-  host: string
-  user: string
-  password: string
-  database: string
+export interface DbConfig extends PoolOptions {
   skiptzfix?: boolean
-  connectionLimit?:
-  number
 }
 
 export interface QueryOptions {
   saveAsPrepared?: boolean
+  nestTables?: true|'_'
 }
 
 export interface StreamOptions extends QueryOptions {
   highWaterMark?: number
-  objectMode?: boolean
 }
 
 type BindParam = any
@@ -28,10 +22,8 @@ type BindParam = any
 // higher highWaterMark settings make it worse
 function stream (query: Query, options: StreamOptions) {
   const anyquery = query as any
-  options = options || {}
-  options.objectMode = true
   let canceled = false
-  const stream = new Readable(options)
+  const stream = new Readable({ ...options, objectMode: true })
   stream._read = () => {
     anyquery._connection && anyquery._connection.resume()
   }
@@ -69,12 +61,12 @@ export class Queryable {
   async query (sql: string, binds?: BindParam[], options?: QueryOptions): Promise<RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[]> {
     return new Promise((resolve, reject) => {
       if (options?.saveAsPrepared) {
-        this.conn.execute(sql, binds, (err, result) => {
+        this.conn.execute({ ...options, sql, values: binds }, (err, result) => {
           if (err) reject(err)
           else resolve(result)
         })
       } else {
-        this.conn.query(sql, binds, (err, result) => {
+        this.conn.query({ ...options, sql, values: binds }, (err, result) => {
           if (err) reject(err)
           else resolve(result)
         })
@@ -124,7 +116,7 @@ export class Queryable {
     } else {
       binds = bindsOrOptions
     }
-    const result = options?.saveAsPrepared ? this.conn.execute(sql, binds) : this.conn.query(sql, binds)
+    const result = options?.saveAsPrepared ? this.conn.execute({ ...options, sql, values: binds }) : this.conn.query({ ...options, sql, values: binds })
     return stream(result, options ?? {})
   }
 
@@ -140,27 +132,22 @@ export class Db extends Queryable {
   protected pool: Pool
 
   constructor (config?: DbConfig) {
-    const resolvedConfig: DbConfig = {
+    const skiptzfix = (config?.skiptzfix ?? false) || Boolean(process.env.MYSQL_SKIPTZFIX)
+    const poolSizeString = process.env.MYSQL_POOL_SIZE ?? process.env.DB_POOL_SIZE
+    const pool = mysql.createPool({
+      ...config,
       host: config?.host ?? process.env.MYSQL_HOST ?? process.env.DB_HOST ?? 'mysql',
       user: config?.user ?? process.env.MYSQL_USER ?? process.env.DB_USER ?? 'root',
       password: config?.password ?? process.env.MYSQL_PASS ?? process.env.DB_PASS ?? 'secret',
       database: config?.database ?? process.env.MYSQL_DATABASE ?? process.env.DB_DATABASE ?? 'default_database',
-      skiptzfix: (config?.skiptzfix ?? false) || Boolean(process.env.MYSQL_SKIPTZFIX),
-      connectionLimit: config?.connectionLimit ?? parseInt(process.env.MYSQL_POOL_SIZE ?? process.env.DB_POOL_SIZE ?? '10')
-    }
-    const pool = mysql.createPool({
-      host: resolvedConfig.host,
-      user: resolvedConfig.user,
-      password: resolvedConfig.password,
-      database: resolvedConfig.database,
-      connectionLimit: resolvedConfig.connectionLimit,
       // client side connectTimeout is unstable in mysql2 library
       // it throws an error you can't catch and crashes node
       // best to leave this at 0 (disabled)
       connectTimeout: 0,
-      ...(resolvedConfig.skiptzfix ? { timezone: 'Z' } : {})
+      ...(skiptzfix ? { timezone: 'Z' } : {}),
+      ...(poolSizeString ? { connectionLimit: parseInt(poolSizeString) } : {})
     })
-    if (!resolvedConfig.skiptzfix) {
+    if (!skiptzfix) {
       pool.on('connection', function (connection) {
         connection.query('SET time_zone="UTC"')
       })
