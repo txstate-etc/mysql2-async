@@ -52,7 +52,7 @@ async function main() {
 main().catch(e => console.error(e))
 ```
 
-# Usage
+# Basic Usage
 A lot of convenience methods are provided that allow you to specify the kind of operation you are about
 to do and the kind of return data you expect.
 ## Querying
@@ -70,11 +70,19 @@ const insertId = await db.insert('INSERT INTO mytable (name) VALUES (?)', ['Mike
 const rowsUpdated = await db.update('UPDATE mytable SET name=? WHERE name=?', ['Johnny', 'John'])
 const success = await db.execute('CREATE TABLE anothertable ...')
 ```
+## Raw query
+If the convenience methods are hiding something you need from mysql2, you can use .query() to get
+back whatever would have been returned by mysql2 (inside a promise, however).
+```javascript
+const result = await db.query('INSERT INTO mytable (name) VALUES (?)', ['Mike'])
+const insertId = result.insertId
+```
+# Advanced Usage
 ## Streaming
 ### Async Iterator
 The async iterator approach is by far the simplest. It works almost exactly like `.getall()`, except
-the advantage here is that the entire result set will never be loaded into memory, which will prevent
-issues when dealing with thousands or millions of rows.
+the advantage here is that it does not load the entire result set into memory at one time, which will help
+you avoid out-of-memory issues when dealing with thousands or millions of rows.
 ```javascript
 const stream = db.stream('SELECT name FROM mytable')
 for await (const row of stream) {
