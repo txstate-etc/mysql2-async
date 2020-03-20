@@ -1,5 +1,4 @@
 import mysql, { Pool, PoolConnection, PoolOptions, RowDataPacket, OkPacket, Query } from 'mysql2'
-import { sleep } from 'txstate-utils'
 import { Readable } from 'stream'
 
 export interface DbConfig extends PoolOptions {
@@ -162,7 +161,7 @@ export default class Db extends Queryable {
         break
       } catch (err) {
         if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED') {
-          await sleep(500)
+          await new Promise(resolve => setTimeout(resolve, 500))
         } else {
           throw err
         }
