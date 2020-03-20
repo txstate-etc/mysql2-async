@@ -50,6 +50,21 @@ describe('transaction tests', () => {
     expect(row).to.be.undefined
   })
 
+  it('should automatically roll back when a query has an error', async () => {
+    let id = 0
+    try {
+      await db.transaction(async db => {
+        id = await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', ['name 2001'])
+        expect(id).to.be.greaterThan(0)
+        await db.getrow('SELECT * FROM test WHERE blah id=?', [id])
+      })
+    } catch (e) {
+      expect(e.message).to.match(/error.*sql/i)
+    }
+    const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
+    expect(row).to.be.undefined
+  })
+
   it('should properly release connections back to the pool', async () => {
     for (let i = 0; i < 15; i++) {
       await db.transaction(async db => {
