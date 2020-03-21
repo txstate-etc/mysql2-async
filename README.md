@@ -39,7 +39,7 @@ environment variables:
   MYSQL_USER (default 'root')
   MYSQL_PASS
   MYSQL_POOL_SIZE (default is mysql2's default)
-  MYSQL_SKIPTZFIX (default false)
+  MYSQL_SKIPTZFIX (default false) // see below for discussion of the timezone fix
 ```
 This way, connecting is very simple, and you don't have to worry about creating a singleton pool for the
 rest of your codebase to import:
@@ -142,3 +142,26 @@ query planning stage on the mysql server and return data a little bit faster.
 
 Note that this is just a pass-through to mysql2's prepared statement implementation, so you can refer to
 their documentation / code for more details.
+## Timezone Fix
+Working with timezones can be very confusing. This library takes an opinionated approach and sets it up so
+that all dates will be stored as UTC, whether the date is set automatically on the server through a
+`DEFAULT CURRENT_TIMESTAMP` setting, set with a server-side function such as `NOW()`, or sent from the client
+as a javascript Date() object.
+
+Older versions of mysql (less than 5.1) may throw an error because of this. If you need to work with a server
+running an old version of mysql, or an existing database that does not or has not stored dates as UTC in the past,
+you may set the `skiptzfix` configuration variable and then be very careful while handling dates.
+```javascript
+const db = new Db({ skiptzfix: true })
+```
+## Typescript
+This library is written in typescript and provides its own types. For added convenience, methods that return
+rows or values will accept a generic so that you can specify the return type you expect:
+```javascript
+interface Book {
+  id: number
+  title: string
+  isbn: string
+}
+const row = await db.getrow<Book>('SELECT id, title, isbn FROM books WHERE id=?', [5])
+```
