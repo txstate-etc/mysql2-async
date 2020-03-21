@@ -1,8 +1,10 @@
 version: '3'
 services:
-  txstate-mysql:
+  mysql2-async:
     build:
       context: .
+    environment:
+      TZ: America/Chicago
     depends_on:
       - mysql
   mysql:
