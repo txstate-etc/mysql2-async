@@ -12,3 +12,4 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: secret
       MYSQL_DATABASE: default_database
+      TZ: America/Los_Angeles

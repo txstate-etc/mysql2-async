@@ -145,7 +145,7 @@ export default class Db extends Queryable {
       // it throws an error you can't catch and crashes node
       // best to leave this at 0 (disabled)
       connectTimeout: 0,
-      ...(skiptzfix ? { timezone: 'Z' } : {}),
+      ...(!skiptzfix ? { timezone: 'Z' } : {}),
       ...(poolSizeString ? { connectionLimit: parseInt(poolSizeString) } : {})
     })
     if (!skiptzfix) {
