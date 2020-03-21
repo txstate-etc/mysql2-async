@@ -39,7 +39,7 @@ environment variables:
   MYSQL_USER (default 'root')
   MYSQL_PASS
   MYSQL_POOL_SIZE (default is mysql2's default)
-  MYSQL_SKIPTZFIX (default false) // see below for discussion of the timezone fix
+  MYSQL_SKIPTZFIX (default false) // see below discussion of the timezone fix
 ```
 This way, connecting is very simple, and you don't have to worry about creating a singleton pool for the
 rest of your codebase to import:
@@ -79,8 +79,8 @@ const insertId = result.insertId
 ```
 # Advanced Usage
 ## Streaming
-### Async Iterator
-The async iterator approach is by far the simplest. It works almost exactly like `.getall()`, except
+### Async Iterable
+The async iterable approach is by far the simplest. It works almost exactly like `.getall()`, except
 the advantage here is that it does not load the entire result set into memory at one time, which will help
 you avoid out-of-memory issues when dealing with thousands or millions of rows.
 ```javascript
@@ -114,7 +114,8 @@ To start a transaction, provide a callback that MUST return a promise (just make
 `db` is provided to the callback, it represents a single connection, inside a transaction. You do NOT send
 `START TRANSACTION`, `ROLLBACK`, or `COMMIT` as these are handled automatically.
 ```javascript
-await db.transaction(async db => { // both queries below happen in the same transaction
+await db.transaction(async db => {
+  // both of these queries happen in the same transaction
   const row = await db.getrow('SELECT * FROM ...')
   await db.update('UPDATE mytable SET ...')
 })
@@ -122,7 +123,7 @@ await db.transaction(async db => { // both queries below happen in the same tran
 If you need to roll back, simply throw an error. Similarly, any query that throws an error will trigger
 a rollback.
 ```javascript
-await db.transaction(async db => { // both queries below happen in the same transaction
+await db.transaction(async db => {
   const id = await db.insert('INSERT INTO user ...')
   throw new Error('oops!')
 }) // the INSERT will be rolled back and will not happen
@@ -132,7 +133,7 @@ Prepared statements are nearly automatic, you just need to notate which queries 
 carefully pick a few complicated queries because each unique SQL string that uses prepared statement support
 will use up a small amount of resources on both client and server.
 ```javascript
-await db.getrow('SELECT t1.*, t2.* FROM mytable t1, myothertable t2 WHERE ... complicated ...',
+await db.getrow('SELECT m.*, o.* FROM mytable m, othertable o WHERE ...complicated...',
   [ /* bind parameters */ ],
   { saveAsPrepared: true }
 )
@@ -157,7 +158,7 @@ const db = new Db({ skiptzfix: true })
 ## Typescript
 This library is written in typescript and provides its own types. For added convenience, methods that return
 rows or values will accept a generic so that you can specify the return type you expect:
-```javascript
+```typescript
 interface Book {
   id: number
   title: string
