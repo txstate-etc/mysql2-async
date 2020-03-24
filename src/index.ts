@@ -9,14 +9,20 @@ export interface DbConfig extends PoolOptions {
 export interface QueryOptions {
   saveAsPrepared?: boolean
   nestTables?: true|'_'
+  rowsAsArray?: boolean
 }
 
 export interface StreamOptions extends QueryOptions {
   highWaterMark?: number
 }
 
-type BindParam = any
-type ColTypes = any
+interface canBeStringed {
+  toString(): string
+}
+interface BindObject { [keys: string]: BindParam }
+type BindParam = boolean|number|string|null|Date|Buffer|canBeStringed|BindObject
+type ColTypes = BindParam
+type BindInput = BindParam[]|BindObject
 
 interface GenericReadable<T> extends Readable {
   [Symbol.asyncIterator](): AsyncIterableIterator<T>
@@ -62,7 +68,9 @@ export class Queryable {
     this.conn = conn
   }
 
-  async query (sql: string, binds?: BindParam[], options?: QueryOptions): Promise<RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[]> {
+  async query (sql: string, binds?: BindInput, options?: QueryOptions): Promise<RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[]> {
+    if (!options) options = {}
+    if (typeof binds === 'object' && !Array.isArray(binds)) (options as any).namedPlaceholders = true
     return new Promise((resolve, reject) => {
       if (options?.saveAsPrepared) {
         this.conn.execute({ ...options, sql, values: binds }, (err, result) => {
@@ -78,38 +86,38 @@ export class Queryable {
     })
   }
 
-  async getval<ReturnType = ColTypes> (sql: string, binds?: BindParam[], options?: QueryOptions) {
+  async getval<ReturnType = ColTypes> (sql: string, binds?: BindInput, options?: QueryOptions) {
     const row = await this.getrow<[ReturnType]>(sql, binds, options)
     if (row) return Object.values(row)[0]
   }
 
-  async getrow<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: QueryOptions) {
+  async getrow<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: QueryOptions) {
     const results = await this.getall<ReturnType>(sql, binds, options)
     if (results?.length > 0) return results?.[0]
   }
 
-  async getall<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: QueryOptions) {
+  async getall<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: QueryOptions) {
     const results = await this.query(sql, binds, options)
     return results as ReturnType[]
   }
 
-  async execute (sql: string, binds?: BindParam[], options?: QueryOptions) {
+  async execute (sql: string, binds?: BindInput, options?: QueryOptions) {
     await this.query(sql, binds, options)
     return true
   }
 
-  async update (sql: string, binds?: BindParam[], options?: QueryOptions) {
+  async update (sql: string, binds?: BindInput, options?: QueryOptions) {
     const result = await this.query(sql, binds, options)
     return (result as OkPacket).changedRows
   }
 
-  async insert (sql: string, binds?: BindParam[], options?: QueryOptions) {
+  async insert (sql: string, binds?: BindInput, options?: QueryOptions) {
     const result = await this.query(sql, binds, options)
     return (result as OkPacket).insertId
   }
 
   stream<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): GenericReadable<ReturnType>
-  stream<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: StreamOptions): GenericReadable<ReturnType>
+  stream<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): GenericReadable<ReturnType>
   stream<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
     let binds
     if (!options && (bindsOrOptions?.highWaterMark || bindsOrOptions?.objectMode)) {
@@ -123,7 +131,7 @@ export class Queryable {
   }
 
   iterator<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): AsyncIterableIterator<RowDataPacket>
-  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindParam[], options?: StreamOptions): AsyncIterableIterator<RowDataPacket>
+  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): AsyncIterableIterator<RowDataPacket>
   iterator<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
     const ret = this.stream<ReturnType>(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
     return ret
