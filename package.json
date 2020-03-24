@@ -1,21 +1,20 @@
 {
   "name": "mysql2-async",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "description": "A wrapper for mysql2 to add convenience, especially when developing with async/await and async iterables.",
-  "main": "lib/index.js",
-  "module": "lib-esm/index.js",
-  "types": "lib/index.d.ts",
+  "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
-    "prepublishOnly": "npm run build",
-    "build": "tsc && tsc -m es6 --outDir lib-esm --moduleResolution node",
+    "prepublishOnly": "echo 'Must use command npm run pub' && exit 1",
+    "build": "rm -rf ./lib && tsc",
     "mocha": "mocha -r ts-node/register test/**/*.ts --exit",
-    "test": "./test.sh"
+    "test": "./test.sh",
+    "pub": "npm run build && cp package.json ./lib/package.json && cd ./lib && npm publish --ignore-scripts"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/chai-as-promised": "^7.1.0",
     "@types/mocha": "^7.0.2",
-    "@types/mysql2": "github:types/mysql2",
     "@types/node": "^12.12.2",
     "@typescript-eslint/eslint-plugin": "^2.24.0",
     "chai": "^4.2.0",
@@ -31,6 +30,7 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
+    "@types/mysql": "^2.15.9",
     "mysql2": "^2.1.0"
   },
   "repository": {
@@ -48,7 +48,7 @@
   },
   "homepage": "https://github.com/txstate-etc/txstate-mysql#readme",
   "files": [
-    "lib/**/*",
-    "lib-esm/**/*"
+    "*.js",
+    "*.d.ts"
   ]
 }

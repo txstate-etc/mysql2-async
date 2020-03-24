@@ -1,4 +1,5 @@
-import mysql, { Pool, PoolConnection, PoolOptions, RowDataPacket, OkPacket, Query } from 'mysql2'
+import mysql from 'mysql2'
+import { Pool, PoolConnection, PoolOptions, RowDataPacket, OkPacket, Query } from './mysql2'
 import { Readable } from 'stream'
 
 export interface DbConfig extends PoolOptions {
@@ -149,7 +150,7 @@ export default class Db extends Queryable {
       ...(poolSizeString ? { connectionLimit: parseInt(poolSizeString) } : {})
     })
     if (!skiptzfix) {
-      pool.on('connection', function (connection) {
+      pool.on('connection', function (connection: PoolConnection) {
         connection.query('SET time_zone="UTC"')
       })
     }
