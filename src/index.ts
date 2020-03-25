@@ -143,6 +143,7 @@ export default class Db extends Queryable {
 
   constructor (config?: DbConfig) {
     const skiptzfix = (config?.skiptzfix ?? false) || Boolean(process.env.MYSQL_SKIPTZFIX)
+    delete config?.skiptzfix
     const poolSizeString = process.env.MYSQL_POOL_SIZE ?? process.env.DB_POOL_SIZE
     const pool = mysql.createPool({
       ...config,
