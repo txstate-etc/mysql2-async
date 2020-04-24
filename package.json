@@ -35,7 +35,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/txstate-etc/txstate-mysql.git"
+    "url": "git+https://github.com/txstate-etc/mysql2-async.git"
   },
   "keywords": [
     "mysql",
@@ -44,9 +44,9 @@
   "author": "Nick Wing",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/txstate-etc/txstate-mysql/issues"
+    "url": "https://github.com/txstate-etc/mysql2-async/issues"
   },
-  "homepage": "https://github.com/txstate-etc/txstate-mysql#readme",
+  "homepage": "https://github.com/txstate-etc/mysql2-async#readme",
   "files": [
     "*.js",
     "*.d.ts"
