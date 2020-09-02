@@ -33,12 +33,12 @@ export interface PoolConnection extends mysql.PoolConnection {
 
 export interface Pool extends mysql.Pool {
   execute: mysql.QueryFunction
-  getConnection(callback: (err: mysql.MysqlError, connection: PoolConnection) => any): void
+  getConnection: (callback: (err: mysql.MysqlError, connection: PoolConnection) => any) => void
 }
 
 type authPlugins =
     (pluginMetadata: { connection: Connection, command: string }) =>
-    (pluginData: Buffer) => Promise<string>;
+    (pluginData: Buffer) => Promise<string>
 
 export interface ConnectionOptions extends mysql.ConnectionOptions {
   charsetNumber?: number

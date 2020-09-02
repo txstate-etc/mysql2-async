@@ -17,7 +17,7 @@ export interface StreamOptions extends QueryOptions {
 }
 
 interface canBeStringed {
-  toString(): string
+  toString: () => string
 }
 interface BindObject { [keys: string]: BindParam }
 type BindParam = boolean|number|string|null|Date|Buffer|canBeStringed|BindObject
@@ -25,7 +25,7 @@ type ColTypes = BindParam
 type BindInput = BindParam[]|BindObject
 
 interface GenericReadable<T> extends Readable {
-  [Symbol.asyncIterator](): AsyncIterableIterator<T>
+  [Symbol.asyncIterator]: () => AsyncIterableIterator<T>
 }
 
 // implemented my own conversion to Readable stream because mysql2's is broken:
@@ -36,7 +36,7 @@ function stream<ReturnType> (query: Query, options: StreamOptions) {
   let canceled = false
   const stream = new Readable({ ...options, objectMode: true }) as GenericReadable<ReturnType>
   stream._read = () => {
-    anyquery._connection && anyquery._connection.resume()
+    anyquery._connection?.resume()
   }
   stream._destroy = (err: Error, cb) => {
     if (err) stream.emit('error', err)
@@ -130,8 +130,8 @@ export class Queryable {
     return stream<ReturnType>(result, options ?? {})
   }
 
-  iterator<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): AsyncIterableIterator<RowDataPacket>
-  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): AsyncIterableIterator<RowDataPacket>
+  iterator<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): AsyncIterableIterator<ReturnType>
+  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): AsyncIterableIterator<ReturnType>
   iterator<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
     const ret = this.stream<ReturnType>(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
     return ret
