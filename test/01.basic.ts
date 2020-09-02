@@ -31,6 +31,16 @@ describe('basic tests', () => {
     expect(ids[0]).to.be.a('number')
   })
 
+  it('should be able to add more test data', async () => {
+    const promises = []
+    for (let i = 0; i < 1000; i++) {
+      promises.push(db.insert('INSERT INTO test2 (name, modified) VALUES (?, NOW())', [`name ${i}`]))
+    }
+    const ids = await Promise.all(promises)
+    expect(ids?.length).to.equal(1000)
+    expect(ids[0]).to.be.a('number')
+  })
+
   it('should be able to select all rows', async () => {
     const rows = await db.getall('SELECT * FROM test')
     expect(rows?.length).to.equal(1000)
@@ -45,6 +55,12 @@ describe('basic tests', () => {
   it('should be able to select a single column in a single row', async () => {
     const name = await db.getval<string>('SELECT name FROM test WHERE name=?', ['name 3'])
     expect(name).to.equal('name 3')
+  })
+
+  it('should be able to select a single column in multiple rows', async () => {
+    const names = await db.getvals<string>('SELECT name FROM test ORDER BY name LIMIT 5')
+    expect(names[3]).to.equal('name 100')
+    expect(names).to.have.lengthOf(5)
   })
 
   it('should be able to update a row', async () => {
