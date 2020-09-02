@@ -52,6 +52,15 @@ async function main() {
 main().catch(e => console.error(e))
 ```
 
+## CommonJS imports
+You must refer to `.default` when importing with `require`:
+```javascript
+const db = require('mysql-async/db').default // or
+const { default: db } = require('mysql-async/db') // or
+const Db = require('mysql-async').default // or
+const { default: Db } = require('mysql-async')
+```
+
 # Basic Usage
 A lot of convenience methods are provided that allow you to specify the kind of operation you are about
 to do and the kind of return data you expect.
