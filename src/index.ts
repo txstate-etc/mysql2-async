@@ -160,6 +160,9 @@ export default class Db extends Queryable {
       // it throws an error you can't catch and crashes node
       // best to leave this at 0 (disabled)
       connectTimeout: 0,
+      // to harden connections against failure https://github.com/sidorares/node-mysql2/issues/683
+      keepAliveInitialDelay: 10000,
+      enableKeepAlive: true,
       ...(!skiptzfix ? { timezone: 'Z' } : {}),
       ...(poolSizeString ? { connectionLimit: parseInt(poolSizeString) } : {})
     })
