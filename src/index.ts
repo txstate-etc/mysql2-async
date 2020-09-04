@@ -24,8 +24,13 @@ type BindParam = boolean|number|string|null|Date|Buffer|canBeStringed|BindObject
 type ColTypes = BindParam
 type BindInput = BindParam[]|BindObject
 
+interface StreamIterator <ReturnType> {
+  [Symbol.asyncIterator]: () => StreamIterator<ReturnType>
+  next: () => Promise<{ done: boolean, value: ReturnType }>
+}
+
 interface GenericReadable<T> extends Readable {
-  [Symbol.asyncIterator]: () => AsyncIterableIterator<T>
+  [Symbol.asyncIterator]: () => StreamIterator<T>
 }
 
 // implemented my own conversion to Readable stream because mysql2's is broken:
@@ -135,8 +140,8 @@ export class Queryable {
     return stream<ReturnType>(result, options ?? {})
   }
 
-  iterator<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): AsyncIterableIterator<ReturnType>
-  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): AsyncIterableIterator<ReturnType>
+  iterator<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): StreamIterator<ReturnType>
+  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): StreamIterator<ReturnType>
   iterator<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
     const ret = this.stream<ReturnType>(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
     return ret
@@ -161,8 +166,8 @@ export default class Db extends Queryable {
       // best to leave this at 0 (disabled)
       connectTimeout: 0,
       // to harden connections against failure https://github.com/sidorares/node-mysql2/issues/683
-      keepAliveInitialDelay: 10000,
-      enableKeepAlive: true,
+      // keepAliveInitialDelay: 10000,
+      // enableKeepAlive: true,
       ...(!skiptzfix ? { timezone: 'Z' } : {}),
       ...(poolSizeString ? { connectionLimit: parseInt(poolSizeString) } : {})
     })
