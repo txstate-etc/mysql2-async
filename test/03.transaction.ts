@@ -96,8 +96,18 @@ describe('transaction tests', () => {
 
   it('should transmit a return value', async () => {
     const val = await db.transaction(async db => {
-      return db.getval<string>('SELECT name FROM test WHERE name=:name', { name: 'name 400' })
+      return await db.getval<string>('SELECT name FROM test WHERE name=:name', { name: 'name 400' })
     })
     expect(val).to.equal('name 400')
+  })
+  it('should show the library consumer in the error stacktrace when a query errors in a transaction', async () => {
+    try {
+      await db.transaction(async db => {
+        await db.getval('SELECT blah FROM test')
+      })
+      expect(true).to.be.false('should have thrown for SQL error')
+    } catch (e) {
+      expect(e.stack).to.match(/03\.transaction\.ts/)
+    }
   })
 })

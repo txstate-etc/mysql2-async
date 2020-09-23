@@ -145,4 +145,16 @@ describe('streaming tests', () => {
     }
     expect(count).to.equal(100)
   })
+
+  it('should show the library consumer in the error stacktrace when a streaming query errors', async () => {
+    try {
+      const stream = db.stream('SELECT blah FROM test')
+      for await (const row of stream) {
+        expect(row).to.exist
+      }
+      expect(true).to.be.false('should have thrown for SQL error')
+    } catch (e) {
+      expect(e.stack).to.match(/02\.stream\.ts/)
+    }
+  })
 })

@@ -43,19 +43,25 @@ export class Queryable {
   async query (sql: string, binds?: BindInput, options?: QueryOptions): Promise<any[] | any[][] | OkPacket | OkPacket[]> {
     if (!options) options = {}
     if (typeof binds === 'object' && !Array.isArray(binds)) (options as any).namedPlaceholders = true
+    try {
       return await new Promise((resolve, reject) => {
-      if (options?.saveAsPrepared) {
-        this.conn.execute({ ...options, sql, values: binds }, (err, result) => {
-          if (err) reject(err)
+        if (options?.saveAsPrepared) {
+          this.conn.execute({ ...options, sql, values: binds }, (err, result) => {
+            if (err) reject(err)
             else resolve(result as any)
-        })
-      } else {
-        this.conn.query({ ...options, sql, values: binds }, (err, result) => {
-          if (err) reject(err)
+          })
+        } else {
+          this.conn.query({ ...options, sql, values: binds }, (err, result) => {
+            if (err) reject(err)
             else resolve(result as any)
-        })
-      }
-    })
+          })
+        }
+      })
+    } catch (e) {
+      e.clientstack = e.stack
+      Error.captureStackTrace(e, this.query)
+      throw e
+    }
   }
 
   async getval<ReturnType = ColTypes> (sql: string, binds?: BindInput, options?: QueryOptions) {

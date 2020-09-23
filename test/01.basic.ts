@@ -84,4 +84,11 @@ describe('basic tests', () => {
     expect(rows).to.have.lengthOf(4)
   })
   it('should show the library consumer in the error stacktrace when a query errors', async () => {
+    try {
+      await db.getval('SELECT blah FROM test')
+      expect(true).to.be.false('should have thrown for SQL error')
+    } catch (e) {
+      expect(e.stack).to.match(/01\.basic\.ts/)
+    }
+  })
 })
