@@ -75,7 +75,7 @@ export class Queryable {
   async query (sql: string, binds?: BindInput, options?: QueryOptions): Promise<any[] | any[][] | OkPacket | OkPacket[]> {
     if (!options) options = {}
     if (typeof binds === 'object' && !Array.isArray(binds)) (options as any).namedPlaceholders = true
-    return new Promise((resolve, reject) => {
+      return await new Promise((resolve, reject) => {
       if (options?.saveAsPrepared) {
         this.conn.execute({ ...options, sql, values: binds }, (err, result) => {
           if (err) reject(err)
