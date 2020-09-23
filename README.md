@@ -72,10 +72,13 @@ const row = await db.getrow('SELECT name FROM mytable WHERE name=?', ['John'])
 console.log(row) // { name: 'John' }
 const name = await db.getval('SELECT name FROM mytable WHERE name=?', ['John'])
 console.log(name) // John
-const names = await db.getvals('SELECT name FROM mytable WHERE name IN (@name1, @name2)',
+const names = await db.getvals('SELECT name FROM mytable WHERE name IN (:name1, :name2)',
   { name1: 'John', name2: 'Maria' })
 console.log(names) // ['John', 'Maria']
 ```
+## Named parameters
+As you can see in the `getvals` example in the previous section, mysql2's named parameter support works
+here as well.
 ## Mutating
 ```javascript
 const insertId = await db.insert('INSERT INTO mytable (name) VALUES (?)', ['Mike'])
@@ -115,8 +118,10 @@ for await (const row of stream) {
   // work on the row
 }
 ```
+`for await` is very safe, as `break`ing the loop or throwing an error inside the loop will clean up the stream appropriately.
+
 Note that `.stream()` returns a node `Readable` in object mode, so you can easily do other things with
-it like `.pipe()` it to another stream processor.
+it like `.pipe()` it to another stream processor. When using the stream without `for await`, you must call `stream.destroy` if you do not want to finish processing it and carefully use `try {} finally {}` to destroy it in case your code throws an error. Failure to do so will leak a connection from the pool.
 ### Iterator .next()
 Another available approach is to use the iterator pattern directly. This is a standard javascript iterator
 that you would receive from anything that supports the async iterator pattern. Probably to be avoided unless
@@ -132,6 +137,7 @@ while (true) {
   }
 }
 ```
+An iterator needs to be cleaned up when your code is aborted before reaching the end, or it will leak a connection. Remember to `await iterator.return()` if you are going to abandon the iterator, and inside `try {} finally {}` blocks in your row processing code. An SQL query error will show up on the first `await iterator.next()` and does not need to be cleaned up.
 ## Transactions
 A method is provided to support working inside a transaction. Since the core Db object is a mysql pool, you
 cannot send transaction commands without this method, as each command would end up on a different connection.

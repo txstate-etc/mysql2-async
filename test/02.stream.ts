@@ -2,6 +2,7 @@
 /* global describe, it */
 import { expect } from 'chai'
 import db from '../src/db'
+import Db from '../src/index'
 
 describe('streaming tests', () => {
   it('should be able to stream a row at a time', async () => {
@@ -40,20 +41,6 @@ describe('streaming tests', () => {
     for (let i = 0; i < 15; i++) {
       const stream = db.stream('SELECT * FROM test LIMIT 100')
       for await (const row of stream) {
-        expect(row?.name).to.match(/name \d+/)
-      }
-    }
-    // if transactions eat connections then it will hang indefinitely after 10 transactions
-    // getting this far means things are working
-    expect(true).to.be.true
-  })
-
-  it('should properly release connections back to the pool with iterator syntax', async () => {
-    for (let i = 0; i < 15; i++) {
-      const iterator = db.iterator('SELECT * FROM test LIMIT 100')
-      while (true) {
-        const { done, value: row } = await iterator.next()
-        if (done) break
         expect(row?.name).to.match(/name \d+/)
       }
     }
@@ -132,5 +119,30 @@ describe('streaming tests', () => {
     // if transactions eat connections then it will hang indefinitely after 10 transactions
     // getting this far means things are working
     expect(errorthrown).to.be.false
+  })
+
+  it('should properly release connections back to the pool when the consumer cancels the stream before the database is connected', async () => {
+    const db2 = new Db()
+    for (let i = 0; i < 15; i++) {
+      const stream = db2.stream('SELECT * FROM test LIMIT 100')
+      stream.destroy()
+    }
+    const stream = db2.stream('SELECT * FROM test LIMIT 100')
+    for await (const row of stream) {
+      expect(row?.name).to.match(/name \d+/)
+    }
+    // if transactions eat connections then it will hang indefinitely after 10 transactions
+    // getting this far means things are working
+  })
+
+  it('should connect to the database when a stream is the first thing attempted', async () => {
+    const db2 = new Db()
+    const stream = db2.stream<{ name: string }>('SELECT * FROM test LIMIT 100')
+    let count = 0
+    for await (const row of stream) {
+      count++
+      expect(row?.name).to.match(/^name \d+/)
+    }
+    expect(count).to.equal(100)
   })
 })

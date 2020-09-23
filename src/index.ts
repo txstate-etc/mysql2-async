@@ -26,43 +26,11 @@ type BindInput = BindParam[]|BindObject
 interface StreamIterator <ReturnType> {
   [Symbol.asyncIterator]: () => StreamIterator<ReturnType>
   next: () => Promise<{ done: boolean, value: ReturnType }>
+  return: () => Promise<{ done: boolean, value: ReturnType }>
 }
 
 interface GenericReadable<T> extends Readable {
   [Symbol.asyncIterator]: () => StreamIterator<T>
-}
-
-// implemented my own conversion to Readable stream because mysql2's is broken:
-// it calls stream.emit('close') while the consumer is still reading from the buffer
-// higher highWaterMark settings make it worse
-function stream<ReturnType> (query: Query, options: StreamOptions) {
-  const anyquery = query as any
-  let canceled = false
-  const stream = new Readable({ ...options, objectMode: true }) as GenericReadable<ReturnType>
-  stream._read = () => {
-    anyquery._connection?.resume()
-  }
-  stream._destroy = (err: Error, cb) => {
-    if (err) stream.emit('error', err)
-    canceled = true
-    anyquery._connection.resume()
-    cb()
-  }
-  query.on('result', row => {
-    if (canceled) return
-    if (!stream.push(row)) {
-      anyquery._connection.pause()
-    }
-  })
-  query.on('error', err => {
-    if (canceled) return
-    stream.emit('error', err)
-  })
-  query.on('end', () => {
-    if (canceled) return
-    stream.push(null)
-  })
-  return stream
 }
 
 export class Queryable {
@@ -125,9 +93,42 @@ export class Queryable {
     return (result as OkPacket).insertId
   }
 
-  stream<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): GenericReadable<ReturnType>
-  stream<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): GenericReadable<ReturnType>
-  stream<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
+  protected feedStream<ReturnType> (stream: GenericReadable<ReturnType>, sql: string, binds: BindInput, options: QueryOptions = {}) {
+    if (stream.destroyed) return
+
+    const req = options?.saveAsPrepared ? this.conn.execute({ ...options, sql, values: binds }) : this.conn.query({ ...options, sql, values: binds })
+    const reqany: any = req
+    let canceled = false
+    const stacktraceError: { stack?: string } = {}
+    Error.captureStackTrace(stacktraceError, this.feedStream)
+    stream._read = () => {
+      reqany._connection?.resume()
+    }
+    stream._destroy = (err: Error, cb) => {
+      if (err) stream.emit('error', err)
+      canceled = true
+      reqany._connection?.resume()
+      cb()
+    }
+    req.on('result', (row: any) => {
+      if (canceled) return
+      if (!stream.push(row)) {
+        reqany._connection.pause()
+      }
+    })
+    req.on('error', err => {
+      if (canceled) return;
+      (err as any).clientstack = err.stack
+      err.stack = (stacktraceError.stack ?? '').replace(/^Error:/, `Error: ${err.message}`)
+      stream.emit('error', err)
+    })
+    req.on('end', () => {
+      if (canceled) return
+      stream.push(null)
+    })
+  }
+
+  protected handleStreamOptions<ReturnType> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
     let binds
     if (!options && (bindsOrOptions?.highWaterMark || bindsOrOptions?.objectMode)) {
       options = bindsOrOptions
@@ -135,13 +136,34 @@ export class Queryable {
     } else {
       binds = bindsOrOptions
     }
-    const result = options?.saveAsPrepared ? this.conn.execute({ ...options, sql, values: binds }) : this.conn.query({ ...options, sql, values: binds })
-    return stream<ReturnType>(result, options ?? {})
+    const queryOptions: QueryOptions = {
+      saveAsPrepared: options?.saveAsPrepared,
+      nestTables: options?.nestTables,
+      rowsAsArray: options?.rowsAsArray
+    }
+    const streamOptions = {
+      highWaterMark: options?.highWaterMark
+    }
+    const stream = new Readable({ ...streamOptions, objectMode: true }) as GenericReadable<ReturnType>
+    stream._read = () => {}
+    stream._destroy = (err: Error, cb) => {
+      if (err) stream.emit('error', err)
+      cb()
+    }
+    return { binds, queryOptions, stream }
   }
 
-  iterator<ReturnType = RowDataPacket> (sql: string, options: StreamOptions): StreamIterator<ReturnType>
-  iterator<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: StreamOptions): StreamIterator<ReturnType>
-  iterator<ReturnType = RowDataPacket> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
+  stream<ReturnType = any> (sql: string, options: StreamOptions): GenericReadable<ReturnType>
+  stream<ReturnType = any> (sql: string, binds?: BindInput, options?: StreamOptions): GenericReadable<ReturnType>
+  stream<ReturnType = any> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
+    const { binds, queryOptions, stream } = this.handleStreamOptions<ReturnType>(sql, bindsOrOptions, options)
+    this.feedStream(stream, sql, binds, queryOptions)
+    return stream
+  }
+
+  iterator<ReturnType = any> (sql: string, options: StreamOptions): StreamIterator<ReturnType>
+  iterator<ReturnType = any> (sql: string, binds?: BindInput, options?: StreamOptions): StreamIterator<ReturnType>
+  iterator<ReturnType = any> (sql: string, bindsOrOptions: any, options?: StreamOptions) {
     const ret = this.stream<ReturnType>(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
     return ret
   }
