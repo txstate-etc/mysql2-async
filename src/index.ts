@@ -91,13 +91,13 @@ export class Queryable {
   }
 
   async getval<ReturnType = ColTypes> (sql: string, binds?: BindInput, options?: QueryOptions) {
-    const row = await this.getrow<[ReturnType]>(sql, binds, options)
-    if (row) return Object.values(row)[0]
+    const row = await this.getrow<[ReturnType]>(sql, binds, { ...options, rowsAsArray: true })
+    return row?.[0]
   }
 
   async getvals<ReturnType = ColTypes> (sql: string, binds?: BindInput, options?: QueryOptions) {
-    const rows = await this.getall<[ReturnType]>(sql, binds, options)
-    return rows.map(r => Object.values(r)[0])
+    const rows = await this.getall<[ReturnType]>(sql, binds, { ...options, rowsAsArray: true })
+    return rows.map(r => r[0])
   }
 
   async getrow<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: QueryOptions) {
