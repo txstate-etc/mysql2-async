@@ -145,6 +145,19 @@ export class Queryable {
     const ret = this.stream<ReturnType>(sql, bindsOrOptions, options)[Symbol.asyncIterator]()
     return ret
   }
+
+  in (binds: BindInput, newbinds: BindParam[]) {
+    if (Array.isArray(binds)) {
+      binds.push(...newbinds)
+      return newbinds.map(() => '?').join(',')
+    } else {
+      const startindex = Object.keys(binds).length
+      for (let i = 0; i < newbinds.length; i++) {
+        binds[`bindin${i + startindex}`] = newbinds[i]
+      }
+      return Array.from({ length: newbinds.length }, (v, k) => k + startindex).map(n => `:bindin${n}`).join(',')
+    }
+  }
 }
 
 export default class Db extends Queryable {

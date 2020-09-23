@@ -73,4 +73,15 @@ describe('basic tests', () => {
     expect(newrow).to.exist
     expect(oldrow).to.be.undefined
   })
+  it('should help you construct IN queries', async () => {
+    const params: any[] = []
+    const rows = await db.getall(`SELECT * FROM test WHERE name IN (${db.in(params, ['name 2', 'name 5'])}) OR name IN (${db.in(params, ['name 8', 'name 9'])})`, params)
+    expect(rows).to.have.lengthOf(4)
+  })
+  it('should help you construct IN queries with named parameters', async () => {
+    const params: { [keys: string]: string } = {}
+    const rows = await db.getall(`SELECT * FROM test WHERE name IN (${db.in(params, ['name 2', 'name 5'])}) OR name IN (${db.in(params, ['name 8', 'name 9'])})`, params)
+    expect(rows).to.have.lengthOf(4)
+  })
+  it('should show the library consumer in the error stacktrace when a query errors', async () => {
 })

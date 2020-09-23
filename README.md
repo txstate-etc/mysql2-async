@@ -89,6 +89,20 @@ back whatever would have been returned by mysql2 (inside a promise, however).
 const result = await db.query('INSERT INTO mytable (name) VALUES (?)', ['Mike'])
 const insertId = result.insertId
 ```
+## IN helper
+Writing queries with `IN` operators can be a little complicated, especially when using named parameters.
+A helper is provided that takes your existing bound parameters array/object and an array to be used for the `IN`.
+It generates the SQL while also mutating your existing bound parameters, so that you can easily use it inline.
+```javascript
+const binds = { author: authorid }
+const rows = db.getall(`
+  SELECT * FROM mytable
+  WHERE author = :author
+  AND (
+    genre IN (${db.in(binds, genres)}) OR
+    title IN (${db.in(binds, titles)})
+  )`, binds)
+```
 # Advanced Usage
 ## Streaming
 ### Async Iterable
