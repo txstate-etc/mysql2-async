@@ -1,5 +1,4 @@
-import mysql from 'mysql2'
-import { Pool, PoolConnection, PoolOptions, RowDataPacket, OkPacket, Query } from './mysql2'
+import mysql, { Pool, PoolConnection, PoolOptions, OkPacket } from 'mysql2'
 import { Readable } from 'stream'
 
 export interface DbConfig extends PoolOptions {
@@ -73,19 +72,19 @@ export class Queryable {
     this.conn = conn
   }
 
-  async query (sql: string, binds?: BindInput, options?: QueryOptions): Promise<RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[]> {
+  async query (sql: string, binds?: BindInput, options?: QueryOptions): Promise<any[] | any[][] | OkPacket | OkPacket[]> {
     if (!options) options = {}
     if (typeof binds === 'object' && !Array.isArray(binds)) (options as any).namedPlaceholders = true
     return new Promise((resolve, reject) => {
       if (options?.saveAsPrepared) {
         this.conn.execute({ ...options, sql, values: binds }, (err, result) => {
           if (err) reject(err)
-          else resolve(result)
+            else resolve(result as any)
         })
       } else {
         this.conn.query({ ...options, sql, values: binds }, (err, result) => {
           if (err) reject(err)
-          else resolve(result)
+            else resolve(result as any)
         })
       }
     })

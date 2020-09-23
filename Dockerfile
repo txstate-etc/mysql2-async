@@ -7,7 +7,6 @@ RUN npm install
 COPY tsconfig.json ./
 COPY src src
 COPY test test
-COPY typings typings
 
 ENTRYPOINT [ "npm" ]
 CMD [ "run", "mocha", "--silent" ]
