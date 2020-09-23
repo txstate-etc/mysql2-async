@@ -100,12 +100,12 @@ export class Queryable {
     return rows.map(r => r[0])
   }
 
-  async getrow<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: QueryOptions) {
-    const results = await this.getall<ReturnType>(sql, binds, options)
-    if (results?.length > 0) return results?.[0]
+  async getrow<ReturnType = any> (sql: string, binds?: BindInput, options?: QueryOptions) {
+    const results = await this.query(sql, binds, options) as any[]
+    if (results?.length > 0) return results?.[0] as ReturnType
   }
 
-  async getall<ReturnType = RowDataPacket> (sql: string, binds?: BindInput, options?: QueryOptions) {
+  async getall<ReturnType = any> (sql: string, binds?: BindInput, options?: QueryOptions) {
     const results = await this.query(sql, binds, options)
     return results as ReturnType[]
   }
