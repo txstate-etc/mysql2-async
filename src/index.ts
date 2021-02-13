@@ -175,16 +175,34 @@ export class Queryable {
   }
 
   in (binds: BindInput, newbinds: BindParam[]) {
+    const inElements: string[] = []
     if (Array.isArray(binds)) {
-      binds.push(...newbinds)
-      return newbinds.map(() => '?').join(',')
-    } else {
-      const startindex = Object.keys(binds).length
-      for (let i = 0; i < newbinds.length; i++) {
-        binds[`bindin${i + startindex}`] = newbinds[i]
+      for (const bind of newbinds) {
+        if (Array.isArray(bind)) { // tuple
+          binds.push(...bind)
+          inElements.push(`(${bind.map(() => '?').join(',')})`)
+        } else { // normal
+          binds.push(bind)
+          inElements.push('?')
+        }
       }
-      return Array.from({ length: newbinds.length }, (v, k) => k + startindex).map(n => `:bindin${n}`).join(',')
+    } else {
+      let startindex = Object.keys(binds).length
+      for (const bind of newbinds) {
+        if (Array.isArray(bind)) { // tuple
+          inElements.push(`(${bind.map((str, i) => `:bindin${i + startindex}`).join(',')})`)
+          for (let i = 0; i < bind.length; i++) {
+            binds[`bindin${i + startindex}`] = bind[i]
+          }
+          startindex += bind.length
+        } else { // normal
+          inElements.push(`:bindin${startindex}`)
+          binds[`bindin${startindex}`] = bind
+          startindex++
+        }
+      }
     }
+    return inElements.join(',')
   }
 }
 
