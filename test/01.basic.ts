@@ -65,6 +65,15 @@ describe('basic tests', () => {
     expect(newrow).to.exist
     expect(oldrow).to.be.undefined
   })
+  it('should be able to delete a row and get back number of rows deleted', async () => {
+    await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', ['name 1001'])
+    let row = await db.getrow('SELECT * FROM test WHERE name=?', ['name 1001'])
+    expect(row.name).to.equal('name 1001')
+    const rows = await db.delete('DELETE FROM test WHERE name=?', ['name 1001'])
+    expect(rows).to.equal(1)
+    row = await db.getrow('SELECT * FROM test WHERE name=?', ['name 1001'])
+    expect(row).to.be.undefined
+  })
   it('should help you construct IN queries', async () => {
     const params: any[] = []
     const rows = await db.getall(`SELECT * FROM test WHERE name IN (${db.in(params, ['name 2', 'name 5'])}) OR name IN (${db.in(params, ['name 8', 'name 9'])})`, params)
