@@ -35,6 +35,7 @@ make that easy, this library provides a convenient way to import a singleton poo
 environment variables:
 ```
   MYSQL_HOST (default 'localhost')
+  MYSQL_PORT (default '3306')
   MYSQL_DATABASE (default 'default_database')
   MYSQL_USER (default 'root')
   MYSQL_PASS

@@ -220,6 +220,7 @@ export default class Db extends Queryable {
     const pool = mysql.createPool({
       ...config,
       host: config?.host ?? process.env.MYSQL_HOST ?? process.env.DB_HOST ?? 'mysql',
+      port: config?.port ?? parseInt(process.env.MYSQL_PORT ?? process.env.DB_PORT ?? '3306'),
       user: config?.user ?? process.env.MYSQL_USER ?? process.env.DB_USER ?? 'root',
       password: config?.password ?? process.env.MYSQL_PASS ?? process.env.DB_PASS ?? 'secret',
       database: config?.database ?? process.env.MYSQL_DATABASE ?? process.env.DB_DATABASE ?? 'default_database',
