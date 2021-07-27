@@ -91,12 +91,11 @@ export class Queryable {
 
   async update (sql: string, binds?: BindInput, options?: QueryOptions) {
     const result = await this.query(sql, binds, options)
-    return (result as OkPacket).changedRows
+    return (result as OkPacket).affectedRows
   }
 
   async delete (sql: string, binds?: BindInput, options?: QueryOptions) {
-    const result = await this.query(sql, binds, options)
-    return (result as OkPacket).affectedRows
+    return await this.update(sql, binds, options)
   }
 
   async insert (sql: string, binds?: BindInput, options?: QueryOptions) {
@@ -233,7 +232,8 @@ export default class Db extends Queryable {
       // keepAliveInitialDelay: 10000,
       // enableKeepAlive: true,
       ...(!skiptzfix ? { timezone: 'Z' } : {}),
-      ...(poolSizeString ? { connectionLimit: parseInt(poolSizeString) } : {})
+      ...(poolSizeString ? { connectionLimit: parseInt(poolSizeString) } : {}),
+      flags: [...(config?.flags ?? []), ...(config?.flags?.some(f => f.includes('FOUND_ROWS')) ? [] : ['-FOUND_ROWS'])]
     })
     if (!skiptzfix) {
       pool.on('connection', function (connection: PoolConnection) {
