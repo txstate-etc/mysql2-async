@@ -65,6 +65,10 @@ describe('basic tests', () => {
     expect(newrow).to.exist
     expect(oldrow).to.be.undefined
   })
+  it('should properly report back changed rows and not matched rows', async () => {
+    const changedRows = await db.update('UPDATE test SET name=? WHERE name=?', ['name 300', 'name 300'])
+    expect(changedRows).to.equal(0)
+  })
   it('should be able to delete a row and get back number of rows deleted', async () => {
     await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', ['name 1001'])
     let row = await db.getrow('SELECT * FROM test WHERE name=?', ['name 1001'])

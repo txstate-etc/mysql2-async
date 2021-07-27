@@ -91,11 +91,12 @@ export class Queryable {
 
   async update (sql: string, binds?: BindInput, options?: QueryOptions) {
     const result = await this.query(sql, binds, options)
-    return (result as OkPacket).affectedRows
+    return (result as OkPacket).changedRows
   }
 
   async delete (sql: string, binds?: BindInput, options?: QueryOptions) {
-    return await this.update(sql, binds, options)
+    const result = await this.query(sql, binds, options)
+    return (result as OkPacket).affectedRows
   }
 
   async insert (sql: string, binds?: BindInput, options?: QueryOptions) {
