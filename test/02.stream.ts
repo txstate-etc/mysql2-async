@@ -1,3 +1,4 @@
+/* eslint-disable no-unreachable-loop */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* global describe, it */
 import { expect } from 'chai'
@@ -58,7 +59,7 @@ describe('streaming tests', () => {
           expect(row?.name).to.match(/name \d+/)
           throw new Error('Fail!')
         }
-      } catch (e) {
+      } catch (e: any) {
         expect(e.message).to.equal('Fail!')
         errorthrown = true
       }
@@ -153,7 +154,7 @@ describe('streaming tests', () => {
         expect(row).to.exist
       }
       expect(true).to.be.false('should have thrown for SQL error')
-    } catch (e) {
+    } catch (e: any) {
       expect(e.stack).to.match(/02\.stream\.ts/)
     }
   })

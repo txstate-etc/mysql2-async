@@ -57,7 +57,7 @@ export class Queryable {
           })
         }
       })
-    } catch (e) {
+    } catch (e: any) {
       e.clientstack = e.stack
       Error.captureStackTrace(e, this.query)
       throw e
@@ -249,11 +249,11 @@ export default class Db extends Queryable {
       try {
         await this.getrow('select 1')
         break
-      } catch (err) {
-        if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED') {
+      } catch (e: any) {
+        if (e.code === 'ENOTFOUND' || e.code === 'ECONNREFUSED') {
           await new Promise(resolve => setTimeout(resolve, 500))
         } else {
-          throw err
+          throw e
         }
       }
     }
@@ -273,7 +273,7 @@ export default class Db extends Queryable {
         const ret = await callback(db)
         await db.execute('COMMIT')
         return ret
-      } catch (e) {
+      } catch (e: any) {
         const isDeadlock = e.errno === 1213
         if (isDeadlock && options?.retries) {
           return await this.transaction(callback, { ...options, retries: options.retries - 1 })

@@ -1,15 +1,28 @@
 {
   "name": "mysql2-async",
-  "version": "1.0.16",
+  "version": "1.1.0",
   "description": "A wrapper for mysql2 to add convenience, especially when developing with async/await and async iterables.",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./lib/index.js",
+      "import": "./lib-esm/index.js"
+    },
+    "./db": {
+      "require": "./lib/db.js",
+      "import": "./lib-esm/db.js"
+    }
+  },
+  "types": "lib-esm/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "db": ["./lib/db.d.ts"]
+    }
+  },
   "scripts": {
-    "prepublishOnly": "node prepublish.js",
-    "build": "rm -rf ./lib && tsc && cp package.json ./lib/ && cp README.md ./lib/ && cp LICENSE ./lib/ && cp prepublish.js ./lib/",
+    "prepublishOnly": "npm run build",
+    "build": "rm -rf ./lib && tsc",
     "mocha": "mocha -r ts-node/register test/**/*.ts --exit",
-    "test": "./test.sh",
-    "pub": "npm run build && cd ./lib && RELEASE_MODE=true npm publish"
+    "test": "./test.sh"
   },
   "devDependencies": {
     "@types/chai": "^4.2.12",
@@ -21,7 +34,7 @@
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "eslint": "^7.9.0",
-    "eslint-config-standard-with-typescript": "^20.0.0",
+    "eslint-config-standard-with-typescript": "^21.0.1",
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^5.1.0",
@@ -47,8 +60,7 @@
   },
   "homepage": "https://github.com/txstate-etc/mysql2-async#readme",
   "files": [
-    "db.js",
-    "index.js",
-    "*.d.ts"
+    "lib/**/*",
+    "lib-esm/**/*"
   ]
 }

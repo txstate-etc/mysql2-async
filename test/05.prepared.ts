@@ -15,7 +15,7 @@ describe('prepared statements', () => {
     const promise = db.getrow('SELECT * FROM test WHERE blah name=?', ['name 6'], { saveAsPrepared: true })
     try {
       await expect(promise).to.be.rejected
-    } catch (e) {
+    } catch (e: any) {
       expect(e.message).to.match(/name=\?/)
     }
   })

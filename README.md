@@ -31,8 +31,8 @@ main().catch(e => console.error(e))
 ```
 ## Connect with environment variables
 When working in docker, it's common to keep database configuration in environment variables. In order to
-make that easy, this library provides a convenient way to import a singleton pool created with the following
-environment variables:
+make that easy, this library provides a convenient way to import a pool instance that has already been
+created and configured with the following environment variables:
 ```
   MYSQL_HOST (default 'localhost')
   MYSQL_PORT (default '3306')
@@ -42,8 +42,8 @@ environment variables:
   MYSQL_POOL_SIZE (default is mysql2's default)
   MYSQL_SKIPTZFIX (default false) // see below discussion of the timezone fix
 ```
-This way, connecting is very simple, and you don't have to worry about creating a singleton pool for the
-rest of your codebase to import:
+This way, connecting is very simple, and you don't have to worry about creating and exporting the pool for the
+rest of your codebase:
 ```javascript
 import db from 'mysql2-async/db'
 
@@ -56,10 +56,9 @@ main().catch(e => console.error(e))
 ## CommonJS imports
 You must refer to `.default` when importing with `require`:
 ```javascript
-const db = require('mysql-async/db').default // or
-const { default: db } = require('mysql-async/db') // or
-const Db = require('mysql-async').default // or
-const { default: Db } = require('mysql-async')
+const Db = require('mysql2-async').default
+// or the instance created with environment variables (see above)
+const db = require('mysql2-async/db').default
 ```
 
 # Basic Usage
