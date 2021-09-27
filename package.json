@@ -1,6 +1,6 @@
 {
   "name": "mysql2-async",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A wrapper for mysql2 to add convenience, especially when developing with async/await and async iterables.",
   "exports": {
     ".": {
@@ -12,7 +12,7 @@
       "import": "./lib-esm/db.js"
     }
   },
-  "types": "lib-esm/index.d.ts",
+  "types": "lib/index.d.ts",
   "typesVersions": {
     "*": {
       "db": ["./lib/db.d.ts"]
