@@ -25,7 +25,7 @@ type BindInput = BindParam[]|BindObject
 
 interface StreamIterator <ReturnType> {
   [Symbol.asyncIterator]: () => StreamIterator<ReturnType>
-  next: () => Promise<{ done: boolean, value: ReturnType }>
+  next: () => Promise<{ done?: boolean, value: ReturnType }>
   return: () => Promise<{ done: boolean, value: ReturnType }>
 }
 
