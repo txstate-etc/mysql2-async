@@ -1,8 +1,5 @@
 /* global before */
 import db from '../src/db'
-import chai from 'chai'
-import chaiAsPromised from 'chai-as-promised'
-chai.use(chaiAsPromised)
 
 before(async function () {
   // on first run, mariadb needs a long time to set up the data volume

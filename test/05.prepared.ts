@@ -12,9 +12,9 @@ describe('prepared statements', () => {
   })
 
   it('should have a question mark in the SQL syntax error returned from the server', async () => {
-    const promise = db.getrow('SELECT * FROM test WHERE blah name=?', ['name 6'], { saveAsPrepared: true })
     try {
-      await expect(promise).to.be.rejected
+      await db.getrow('SELECT * FROM test WHERE blah name=?', ['name 6'], { saveAsPrepared: true })
+      expect.fail('should have thrown')
     } catch (e: any) {
       expect(e.message).to.match(/name=\?/)
     }

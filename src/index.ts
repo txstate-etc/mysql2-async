@@ -7,7 +7,7 @@ export interface DbConfig extends PoolOptions {
 
 export interface QueryOptions {
   saveAsPrepared?: boolean
-  nestTables?: true|'_'
+  nestTables?: true | '_'
   rowsAsArray?: boolean
 }
 
@@ -19,9 +19,9 @@ interface canBeStringed {
   toString: () => string
 }
 interface BindObject { [keys: string]: BindParam }
-type BindParam = boolean|number|string|null|Date|Buffer|canBeStringed|BindObject
+type BindParam = boolean | number | string | null | Date | Buffer | canBeStringed | BindObject
 type ColTypes = BindParam
-type BindInput = BindParam[]|BindObject
+type BindInput = BindParam[] | BindObject
 
 interface StreamIterator <ReturnType> {
   [Symbol.asyncIterator]: () => StreamIterator<ReturnType>
