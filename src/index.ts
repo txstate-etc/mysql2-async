@@ -1,4 +1,5 @@
-import mysql, { Pool, PoolConnection, PoolOptions, OkPacket } from 'mysql2'
+import mysql, { type Pool, type PoolConnection, type PoolOptions, type OkPacket, type ResultSetHeader } from 'mysql2'
+import type { Pool as PromisePool, PoolConnection as PromisePoolConnection } from 'mysql2/promise'
 import { Readable } from 'stream'
 
 export interface DbConfig extends PoolOptions {
@@ -18,6 +19,7 @@ export interface StreamOptions extends QueryOptions {
 interface canBeStringed {
   toString: () => string
 }
+// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 interface BindObject { [keys: string]: BindParam }
 type BindParam = boolean | number | string | null | Date | Buffer | canBeStringed | BindObject
 type ColTypes = BindParam
@@ -35,28 +37,24 @@ interface GenericReadable<T> extends Readable {
 
 export class Queryable {
   protected conn: PoolConnection | Pool
+  protected promiseConn: PromisePoolConnection | PromisePool
 
   constructor (conn: PoolConnection | Pool) {
     this.conn = conn
+    this.promiseConn = (conn as any).promise()
   }
 
-  async query (sql: string, binds?: BindInput, options?: QueryOptions): Promise<any[] | any[][] | OkPacket | OkPacket[]> {
+  async query (sql: string, binds?: BindInput, options?: QueryOptions) {
     if (!options) options = {}
     if (typeof binds === 'object' && !Array.isArray(binds)) (options as any).namedPlaceholders = true
     try {
-      return await new Promise((resolve, reject) => {
-        if (options?.saveAsPrepared) {
-          this.conn.execute({ ...options, sql, values: binds }, (err, result) => {
-            if (err) reject(err)
-            else resolve(result as any)
-          })
-        } else {
-          this.conn.query({ ...options, sql, values: binds }, (err, result) => {
-            if (err) reject(err)
-            else resolve(result as any)
-          })
-        }
-      })
+      if (options?.saveAsPrepared) {
+        const [result] = await this.promiseConn.execute({ ...options, sql, values: binds })
+        return result
+      } else {
+        const [result] = await this.promiseConn.query({ ...options, sql, values: binds })
+        return result
+      }
     } catch (e: any) {
       e.clientstack = e.stack
       Error.captureStackTrace(e, this.query)
@@ -91,7 +89,7 @@ export class Queryable {
 
   async update (sql: string, binds?: BindInput, options?: QueryOptions) {
     const result = await this.query(sql, binds, options)
-    return (result as OkPacket).affectedRows
+    return (result as ResultSetHeader).affectedRows
   }
 
   async delete (sql: string, binds?: BindInput, options?: QueryOptions) {
@@ -106,7 +104,7 @@ export class Queryable {
   protected feedStream<ReturnType> (stream: GenericReadable<ReturnType>, sql: string, binds: BindInput, options: QueryOptions = {}) {
     if (stream.destroyed) return
 
-    const req = options?.saveAsPrepared ? this.conn.execute({ ...options, sql, values: binds }) : this.conn.query({ ...options, sql, values: binds })
+    const req = options?.saveAsPrepared ? (this.conn as any).execute({ ...options, sql, values: binds }) : this.conn.query({ ...options, sql, values: binds })
     const reqany: any = req
     let canceled = false
     const stacktraceError: { stack?: string } = {}
@@ -126,7 +124,7 @@ export class Queryable {
         reqany._connection.pause()
       }
     })
-    req.on('error', err => {
+    req.on('error', (err: Error) => {
       if (canceled) return;
       (err as any).clientstack = err.stack
       err.stack = (stacktraceError.stack ?? '').replace(/^Error:/, `Error: ${err.message}`)

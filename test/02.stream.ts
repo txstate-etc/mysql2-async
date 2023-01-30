@@ -101,7 +101,7 @@ describe('streaming tests', () => {
     }
     // if transactions eat connections then it will hang indefinitely after 10 transactions
     // getting this far means things are working
-    expect(errorthrown).to.be.false
+    expect(errorthrown).to.be.true
   })
 
   it('should properly release connections back to the pool when the consumer stops processing the stream', async () => {

@@ -82,9 +82,14 @@ here as well.
 ## Mutating
 ```javascript
 const insertId = await db.insert('INSERT INTO mytable (name) VALUES (?)', ['Mike'])
-const rowsUpdated = await db.update('UPDATE mytable SET name=? WHERE name=?', ['Johnny', 'John'])
+const rowsAffected = await db.update('UPDATE mytable SET name=? WHERE name=?', ['Johnny', 'John'])
 const success = await db.execute('CREATE TABLE anothertable ...')
 ```
+Note that `db.update` returns only rows affected, not rows changed. Affected is the number of rows
+that matched the WHERE, while changed is the number of rows that actually changed after the SET. I
+didn't want to complicate things by trying to return both, and you can always rewrite your query like
+`SET val=? WHERE val!=?` so that affected becomes the same as changed. And if you really don't want to,
+you can use `db.query` to get back `result.changedRows`.
 ## Raw query
 If the convenience methods are hiding something you need from mysql2, you can use .query() to get
 back whatever would have been returned by mysql2 (inside a promise, however).

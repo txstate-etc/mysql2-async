@@ -84,7 +84,7 @@ describe('basic tests', () => {
     expect(rows).to.have.lengthOf(4)
   })
   it('should help you construct IN queries with named parameters', async () => {
-    const params: { [keys: string]: string } = {}
+    const params: Record<string, string> = {}
     const rows = await db.getall(`SELECT * FROM test WHERE name IN (${db.in(params, ['name 2', 'name 5'])}) OR name IN (${db.in(params, ['name 8', 'name 9'])})`, params)
     expect(rows).to.have.lengthOf(4)
   })
@@ -97,7 +97,7 @@ describe('basic tests', () => {
     expect(rows).to.have.lengthOf(3)
   })
   it('should help you construct IN queries with named parameters involving tuples', async () => {
-    let params: { [keys: string]: string } = {}
+    let params: Record<string, string> = {}
     let rows = await db.getall(`SELECT * FROM test WHERE (id, name) IN (${db.in(params, [[3, 'name 2'], [6, 'name 5']])}) OR (id, name) IN (${db.in(params, [[9, 'name 8'], [10, 'name 9']])})`, params)
     expect(rows).to.have.lengthOf(4)
     params = {}
