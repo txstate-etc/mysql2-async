@@ -257,7 +257,7 @@ export default class Db extends Queryable {
     }
   }
 
-  async transaction <ReturnType> (callback: (db: Queryable) => Promise<ReturnType>, options?: { retries?: number }): Promise<ReturnType> {
+  async transaction <ReturnType> (callback: (db: Queryable) => Promise<ReturnType>, options?: { retries?: number, lockForWrite?: string[]|string, lockForRead?: string[]|string, unlockAfter?: boolean }): Promise<ReturnType> {
     const conn = await new Promise<PoolConnection>((resolve, reject) => {
       this.pool.getConnection((err: any, conn: PoolConnection) => {
         if (err) reject(err)
@@ -267,6 +267,11 @@ export default class Db extends Queryable {
     const db = new Queryable(conn)
     try {
       await db.execute('START TRANSACTION')
+      if (options?.lockForRead || options?.lockForWrite) {
+        const lockForRead = typeof options.lockForRead === 'string' ? [options.lockForRead] : (options.lockForRead ?? [])
+        const lockForWrite = typeof options.lockForWrite === 'string' ? [options.lockForWrite] : (options.lockForWrite ?? [])
+        await db.execute(`LOCK TABLES ${lockForRead.map(t => `${t} READ`).concat(lockForWrite.map(t => `${t} WRITE`)).join(', ') ?? ''}`)
+      }
       try {
         const ret = await callback(db)
         await db.execute('COMMIT')
@@ -279,6 +284,8 @@ export default class Db extends Queryable {
           if (!isDeadlock) await db.execute('ROLLBACK')
           throw e
         }
+      } finally {
+        if (options?.lockForRead || options?.lockForWrite || options?.unlockAfter) await db.execute('UNLOCK TABLES')
       }
     } finally {
       conn.release()

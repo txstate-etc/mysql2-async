@@ -110,4 +110,18 @@ describe('transaction tests', () => {
       expect(e.stack).to.match(/03\.transaction\.ts/)
     }
   })
+  it('should be able to lock a table and then throw an error without hanging the lock', async () => {
+    const start = new Date().getTime()
+    const [res1, res2] = await Promise.allSettled([
+      db.transaction(async db => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        throw new Error('bail')
+      }, { lockForWrite: 'test' }),
+      db.transaction(async db => {
+        await db.getall('SELECT * FROM test')
+        expect(new Date().getTime() - start > 200)
+      }, { lockForWrite: 'test' })
+    ])
+    expect(res2.status).to.equal('fulfilled')
+  })
 })
