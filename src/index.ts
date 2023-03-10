@@ -277,11 +277,11 @@ export default class Db extends Queryable {
         await db.execute('COMMIT')
         return ret
       } catch (e: any) {
+        await db.execute('ROLLBACK')
         const isDeadlock = e.errno === 1213
         if (isDeadlock && options?.retries) {
           return await this.transaction(callback, { ...options, retries: options.retries - 1 })
         } else {
-          if (!isDeadlock) await db.execute('ROLLBACK')
           throw e
         }
       } finally {

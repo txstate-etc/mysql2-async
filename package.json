@@ -1,6 +1,6 @@
 {
   "name": "mysql2-async",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "A wrapper for mysql2 to add convenience, especially when developing with async/await and async iterables.",
   "exports": {
     ".": {

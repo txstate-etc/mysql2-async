@@ -3,6 +3,9 @@
 import { expect } from 'chai'
 import db from '../src/db'
 
+const fakeDeadlock = new Error('Fake Deadlock!')
+;(fakeDeadlock as any).errno = 1213
+
 describe('transaction tests', () => {
   it('should be able to run queries in a transaction', async () => {
     await db.transaction(async db => {
@@ -50,6 +53,23 @@ describe('transaction tests', () => {
     expect(row).to.be.undefined
   })
 
+  it('should automatically roll back when a deadlock happens', async () => {
+    let id = 0
+    try {
+      await db.transaction(async db => {
+        id = await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', ['name 2001'])
+        expect(id).to.be.greaterThan(0)
+        const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
+        expect(row?.name).to.equal('name 2001')
+        throw fakeDeadlock
+      })
+    } catch (e: any) {
+      expect(e.message).to.equal('Fake Deadlock!')
+    }
+    const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
+    expect(row).to.be.undefined
+  })
+
   it('should automatically roll back when a query has an error', async () => {
     let id = 0
     try {
@@ -87,6 +107,23 @@ describe('transaction tests', () => {
         })
       } catch (e: any) {
         expect(e.message).to.equal('Fail!')
+      }
+    }
+    // if transactions eat connections then it will hang indefinitely after 10 transactions
+    // getting this far means things are working
+    expect(true).to.be.true
+  })
+
+  it('should properly release connections back to the pool during retry rollbacks', async () => {
+    for (let i = 0; i < 15; i++) {
+      try {
+        await db.transaction(async db => {
+          const row = await db.getrow('SELECT * FROM test WHERE name=?', [`name ${i}`])
+          expect(row?.name).to.equal(`name ${i}`)
+          throw fakeDeadlock
+        }, { retries: 5 })
+      } catch (e: any) {
+        expect(e.message).to.equal('Fake Deadlock!')
       }
     }
     // if transactions eat connections then it will hang indefinitely after 10 transactions
