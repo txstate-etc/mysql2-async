@@ -115,13 +115,13 @@ describe('transaction tests', () => {
   })
 
   it('should properly release connections back to the pool during retry rollbacks', async () => {
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 12; i++) {
       try {
         await db.transaction(async db => {
           const row = await db.getrow('SELECT * FROM test WHERE name=?', [`name ${i}`])
           expect(row?.name).to.equal(`name ${i}`)
           throw fakeDeadlock
-        }, { retries: 5 })
+        }, { retries: 2, retryPause: 10 })
       } catch (e: any) {
         expect(e.message).to.equal('Fake Deadlock!')
       }

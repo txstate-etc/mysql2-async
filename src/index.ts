@@ -257,7 +257,7 @@ export default class Db extends Queryable {
     }
   }
 
-  async transaction <ReturnType> (callback: (db: Queryable) => Promise<ReturnType>, options?: { retries?: number, lockForWrite?: string[]|string, lockForRead?: string[]|string, unlockAfter?: boolean }): Promise<ReturnType> {
+  async transaction <ReturnType> (callback: (db: Queryable) => Promise<ReturnType>, options?: { retries?: number, retryPause?: number, lockForWrite?: string[]|string, lockForRead?: string[]|string, unlockAfter?: boolean }): Promise<ReturnType> {
     const conn = await new Promise<PoolConnection>((resolve, reject) => {
       this.pool.getConnection((err: any, conn: PoolConnection) => {
         if (err) reject(err)
@@ -280,6 +280,8 @@ export default class Db extends Queryable {
         await db.execute('ROLLBACK')
         const isDeadlock = e.errno === 1213
         if (isDeadlock && options?.retries) {
+          // wait a random number of milliseconds to help avoid immediately re-colliding with the other process
+          await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (options.retryPause ?? 100))))
           return await this.transaction(callback, { ...options, retries: options.retries - 1 })
         } else {
           throw e
