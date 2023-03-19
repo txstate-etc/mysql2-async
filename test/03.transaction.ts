@@ -53,6 +53,23 @@ describe('transaction tests', () => {
     expect(row).to.be.undefined
   })
 
+  it('should automatically roll back when an error is thrown inside a transaction that uses LOCK TABLES', async () => {
+    let id = 0
+    try {
+      await db.transaction(async db => {
+        id = await db.insert('INSERT INTO test (name, modified) VALUES (?, NOW())', ['name 2001'])
+        expect(id).to.be.greaterThan(0)
+        const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
+        expect(row?.name).to.equal('name 2001')
+        throw new Error('Fail!')
+      }, { lockForWrite: 'test' })
+    } catch (e: any) {
+      expect(e.message).to.equal('Fail!')
+    }
+    const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
+    expect(row).to.be.undefined
+  })
+
   it('should automatically roll back when a deadlock happens', async () => {
     let id = 0
     try {
@@ -61,6 +78,7 @@ describe('transaction tests', () => {
         expect(id).to.be.greaterThan(0)
         const row = await db.getrow('SELECT * FROM test WHERE id=?', [id])
         expect(row?.name).to.equal('name 2001')
+        await db.execute('ROLLBACK')
         throw fakeDeadlock
       })
     } catch (e: any) {
@@ -120,6 +138,7 @@ describe('transaction tests', () => {
         await db.transaction(async db => {
           const row = await db.getrow('SELECT * FROM test WHERE name=?', [`name ${i}`])
           expect(row?.name).to.equal(`name ${i}`)
+          await db.execute('ROLLBACK')
           throw fakeDeadlock
         }, { retries: 2, retryPause: 10 })
       } catch (e: any) {

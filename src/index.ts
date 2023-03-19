@@ -268,7 +268,7 @@ export default class Db extends Queryable {
     const db = new Queryable(conn)
     try {
       while (true) {
-        await db.execute('START TRANSACTION')
+        await db.execute('SET autocommit=0')
         try {
           if (options?.lockForRead || options?.lockForWrite) {
             const lockForRead = typeof options.lockForRead === 'string' ? [options.lockForRead] : (options.lockForRead ?? [])
@@ -292,6 +292,7 @@ export default class Db extends Queryable {
         }
       }
     } finally {
+      await db.execute('SET autocommit=1')
       conn.release()
     }
   }

@@ -23,6 +23,8 @@ describe('deadlock tests', () => {
     } catch (e: any) {
       expect(e.errno).to.equal(1213)
     }
+    const opentransactions = await db.getval('SELECT count(*) FROM information_schema.innodb_trx')
+    expect(opentransactions).to.equal(0)
   }).timeout(10000)
 
   it('should avoid a deadlock error when retries are allowed', async () => {
