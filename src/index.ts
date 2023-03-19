@@ -264,30 +264,32 @@ export default class Db extends Queryable {
         else resolve(conn)
       })
     })
+    let retries = options?.retries ?? 0
     const db = new Queryable(conn)
     try {
-      await db.execute('START TRANSACTION')
-      if (options?.lockForRead || options?.lockForWrite) {
-        const lockForRead = typeof options.lockForRead === 'string' ? [options.lockForRead] : (options.lockForRead ?? [])
-        const lockForWrite = typeof options.lockForWrite === 'string' ? [options.lockForWrite] : (options.lockForWrite ?? [])
-        await db.execute(`LOCK TABLES ${lockForRead.map(t => `${t} READ`).concat(lockForWrite.map(t => `${t} WRITE`)).join(', ') ?? ''}`)
-      }
-      try {
-        const ret = await callback(db)
-        await db.execute('COMMIT')
-        return ret
-      } catch (e: any) {
-        await db.execute('ROLLBACK')
-        const isDeadlock = e.errno === 1213
-        if (isDeadlock && options?.retries) {
-          // wait a random number of milliseconds to help avoid immediately re-colliding with the other process
-          await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (options.retryPause ?? 100))))
-          return await this.transaction(callback, { ...options, retries: options.retries - 1 })
-        } else {
-          throw e
+      while (true) {
+        await db.execute('START TRANSACTION')
+        try {
+          if (options?.lockForRead || options?.lockForWrite) {
+            const lockForRead = typeof options.lockForRead === 'string' ? [options.lockForRead] : (options.lockForRead ?? [])
+            const lockForWrite = typeof options.lockForWrite === 'string' ? [options.lockForWrite] : (options.lockForWrite ?? [])
+            await db.execute(`LOCK TABLES ${lockForRead.map(t => `${t} READ`).concat(lockForWrite.map(t => `${t} WRITE`)).join(', ') ?? ''}`)
+          }
+          const ret = await callback(db)
+          await db.execute('COMMIT')
+          return ret
+        } catch (e: any) {
+          await db.execute('ROLLBACK')
+          if (e.errno === 1213 && retries > 0) { // deadlock and we're going to retry
+            retries--
+            // wait a random number of milliseconds to help avoid immediately re-colliding with the other process
+            await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (options?.retryPause ?? 100))))
+          } else { // not deadlock or we're done retrying
+            throw e
+          }
+        } finally {
+          if (options?.lockForRead || options?.lockForWrite || options?.unlockAfter) await db.execute('UNLOCK TABLES')
         }
-      } finally {
-        if (options?.lockForRead || options?.lockForWrite || options?.unlockAfter) await db.execute('UNLOCK TABLES')
       }
     } finally {
       conn.release()
