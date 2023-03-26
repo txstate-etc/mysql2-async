@@ -2,8 +2,10 @@ import mysql, { type Pool, type PoolConnection, type PoolOptions, type OkPacket,
 import type { Pool as PromisePool, PoolConnection as PromisePoolConnection } from 'mysql2/promise'
 import { Readable } from 'stream'
 
+export type Mysql2AsyncQueryLogger = (sql: string, elapsedMs: number, rowsUpdated: number) => void | Promise<void>
+
 export interface Mysql2AsyncOptions {
-  logQueries?: (sql: string, elapsedMs: number, rowsUpdated: number) => void | Promise<void>
+  logQueries?: Mysql2AsyncQueryLogger
 }
 
 export interface DbConfig extends PoolOptions, Mysql2AsyncOptions {
@@ -249,6 +251,10 @@ export default class Db extends Queryable {
     }
     super(pool, { logQueries: config?.logQueries })
     this.pool = pool
+  }
+
+  logQueries(logger?: Mysql2AsyncQueryLogger) {
+    this.options.logQueries = logger
   }
 
   async wait () {
