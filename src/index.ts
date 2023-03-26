@@ -2,8 +2,12 @@ import mysql, { type Pool, type PoolConnection, type PoolOptions, type OkPacket,
 import type { Pool as PromisePool, PoolConnection as PromisePoolConnection } from 'mysql2/promise'
 import { Readable } from 'stream'
 
-export interface DbConfig extends PoolOptions {
-  skiptzfix?: boolean
+export interface Mysql2AsyncOptions {
+  logQueries?: (sql: string, elapsedMs: number, rowsUpdated: number) => void | Promise<void>
+}
+
+export interface DbConfig extends PoolOptions, Mysql2AsyncOptions {
+  skiptzfix?: boolean,
 }
 
 export interface QueryOptions {
@@ -38,21 +42,26 @@ interface GenericReadable<T> extends Readable {
 export class Queryable {
   protected conn: PoolConnection | Pool
   protected promiseConn: PromisePoolConnection | PromisePool
+  protected options: Mysql2AsyncOptions
 
-  constructor (conn: PoolConnection | Pool) {
+  constructor (conn: PoolConnection | Pool, options: Mysql2AsyncOptions) {
     this.conn = conn
     this.promiseConn = (conn as any).promise()
+    this.options = options
   }
 
   async query (sql: string, binds?: BindInput, options?: QueryOptions) {
     if (!options) options = {}
     if (typeof binds === 'object' && !Array.isArray(binds)) (options as any).namedPlaceholders = true
     try {
+      const start = this.options.logQueries ? new Date().getTime() : undefined
       if (options?.saveAsPrepared) {
         const [result] = await this.promiseConn.execute({ ...options, sql, values: binds })
+        this.options.logQueries?.(sql, new Date().getTime() - start!, 'affectedRows' in result ? result.affectedRows : 0)?.catch(console.error)
         return result
       } else {
         const [result] = await this.promiseConn.query({ ...options, sql, values: binds })
+        this.options.logQueries?.(sql, new Date().getTime() - start!, 'affectedRows' in result ? result.affectedRows : 0)?.catch(console.error)
         return result
       }
     } catch (e: any) {
@@ -238,7 +247,7 @@ export default class Db extends Queryable {
         connection.query('SET time_zone="UTC"')
       })
     }
-    super(pool)
+    super(pool, { logQueries: config?.logQueries })
     this.pool = pool
   }
 
@@ -265,7 +274,7 @@ export default class Db extends Queryable {
       })
     })
     let retries = options?.retries ?? 0
-    const db = new Queryable(conn)
+    const db = new Queryable(conn, this.options)
     try {
       while (true) {
         await db.execute('SET autocommit=0')
