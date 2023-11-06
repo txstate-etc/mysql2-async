@@ -233,6 +233,7 @@ export default class Db extends Queryable {
       user: config?.user ?? process.env.MYSQL_USER ?? process.env.DB_USER ?? 'root',
       password: config?.password ?? process.env.MYSQL_PASS ?? process.env.DB_PASS ?? 'secret',
       database: config?.database ?? process.env.MYSQL_DATABASE ?? process.env.DB_DATABASE ?? 'default_database',
+      ssl: config?.ssl ?? (!['false', '0'].includes(process.env.MYSQL_SSL ?? process.env.DB_SSL ?? 'false') ? {} : undefined),
       // client side connectTimeout is unstable in mysql2 library
       // it throws an error you can't catch and crashes node
       // best to leave this at 0 (disabled)
