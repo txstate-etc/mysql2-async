@@ -33,6 +33,11 @@ describe('basic tests', () => {
     expect(insertid).to.be.a('number')
   })
 
+  it('should be able to insert undefined into a nullable column', async () => {
+    const insertid = await db.insert<[undefined, Date]>(`INSERT INTO test2 (name, modified) VALUES (?, ?)`, [undefined, new Date()])
+    expect(insertid).to.be.a('number')
+  })
+
   it('should be able to select all rows', async () => {
     const rows = await db.getall('SELECT * FROM test')
     expect(rows?.length).to.equal(1000)

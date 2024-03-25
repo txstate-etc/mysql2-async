@@ -1,6 +1,6 @@
 {
   "name": "mysql2-async",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A wrapper for mysql2 to add convenience, especially when developing with async/await and async iterables.",
   "exports": {
     ".": {
@@ -22,7 +22,7 @@
   },
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "rm -rf ./lib && tsc && mv lib/*.d.ts lib-esm/",
+    "build": "rm -rf ./lib && tsc && cp lib/*.d.ts lib-esm/",
     "mocha": "mocha -r ts-node/register test/**/*.ts --exit",
     "lint": "eslint --ignore-path .gitignore src",
     "test": "./test.sh"

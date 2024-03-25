@@ -1,1 +1,1 @@
-docker compose up --build --attach mysql2-async
+docker compose up --build --abort-on-container-exit --attach mysql2-async

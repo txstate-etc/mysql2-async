@@ -1,4 +1,4 @@
-import mysql, { type Pool, type PoolConnection, type PoolOptions, type OkPacket, type ResultSetHeader } from 'mysql2'
+import mysql, { type Pool, type PoolConnection, type PoolOptions, type ResultSetHeader } from 'mysql2'
 import type { Pool as PromisePool, PoolConnection as PromisePoolConnection } from 'mysql2/promise'
 import { Readable } from 'stream'
 
@@ -27,7 +27,7 @@ interface canBeStringed {
 }
 // eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 interface BindObject { [keys: string]: BindParam }
-type BindParam = boolean | number | string | null | Date | Buffer | canBeStringed | BindObject
+type BindParam = boolean | number | string | null | undefined | Date | Buffer | canBeStringed | BindObject
 type ColTypes = BindParam
 type BindInput = BindParam[] | BindObject
 
@@ -107,9 +107,9 @@ export class Queryable {
     return await this.update(sql, binds, options)
   }
 
-  async insert (sql: string, binds?: BindInput, options?: QueryOptions) {
+  async insert <BindType extends BindInput = BindInput>(sql: string, binds?: BindType, options?: QueryOptions) {
     const result = await this.query(sql, binds, options)
-    return (result as OkPacket).insertId
+    return (result as ResultSetHeader).insertId
   }
 
   protected feedStream<ReturnType> (stream: GenericReadable<ReturnType>, sql: string, binds: BindInput, options: QueryOptions = {}) {
