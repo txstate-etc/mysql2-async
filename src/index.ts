@@ -52,6 +52,10 @@ export class Queryable {
     this.options = options
   }
 
+  end() {
+    this.conn.end()
+  }
+
   async query (sql: string, binds?: BindInput, options?: QueryOptions) {
     if (!options) options = {}
     if (typeof binds === 'object' && !Array.isArray(binds)) (options as any).namedPlaceholders = true
