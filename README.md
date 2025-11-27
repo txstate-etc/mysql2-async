@@ -199,6 +199,7 @@ query planning stage on the mysql server and return data a little bit faster.
 
 Note that this is just a pass-through to mysql2's prepared statement implementation, so you can refer to
 their documentation / code for more details.
+
 ## Timezone Fix
 Working with timezones can be very confusing. This library takes an opinionated approach and sets it up so
 that all dates will be stored as UTC, whether the date is set automatically on the server through a
@@ -211,6 +212,31 @@ you may set the `skiptzfix` configuration variable and then be very careful whil
 ```javascript
 const db = new Db({ skiptzfix: true })
 ```
+
+## Closing the Pool / Graceful Shutdown
+Generally, closing the pool is optional, as killing the node instance will close connections automatically. However,
+you may want to avoid `process.exit()` - as a way of ensuring you have identified all sources of open handles in your
+code.
+
+If you are running a script, then you can call `await db.end()`.
+
+If you are running a server (HTTP or otherwise), listen for sigint/sigterm and close your server first, so that any
+existing requests can be finished. If you end this database pool too early, those existing requests may fail.
+
+Your server shutdown code would look something like:
+```javascript
+async function shutdown () {
+  await server.close()
+  await db.end()
+}
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
+```
+
+If you've successfully closed all open connections and emptied the node event loop, the process should exit on
+its own. If not, you may have missed something that's still running, like a network connection, setInterval, or
+setTimeout loop.
+
 ## Typescript
 This library is written in typescript and provides its own types. For added convenience, methods that return
 rows or values will accept a generic so that you can specify the return type you expect:

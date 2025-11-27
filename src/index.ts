@@ -312,4 +312,13 @@ export default class Db extends Queryable {
       conn.release()
     }
   }
+
+  end () {
+    return new Promise<void>((resolve, reject) => {
+      this.pool.end(err => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+  }
 }
