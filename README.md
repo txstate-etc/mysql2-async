@@ -156,7 +156,7 @@ A method is provided to support working inside a transaction. Since the core Db 
 cannot send transaction commands without this method, as each command would end up on a different connection.
 
 To start a transaction, provide a callback that MUST return a promise (just make it async). A new instance of
-`db` is provided to the callback; it represents a single connection, inside a transaction. Remember to pass this along to any other functions you call during the transaction - __if you call a function that uses the global `db` object its work will happen outside the transaction!__
+`db` is provided to the callback; it represents a single connection, inside a transaction. Remember to pass this along to any other functions you call during the transaction - __if you call a function that uses the global `db` object its work will happen outside the transaction!__ See below for more on this.
 
 You do NOT send `START TRANSACTION`, `ROLLBACK`, or `COMMIT` as these are handled automatically.
 ```javascript
@@ -183,6 +183,51 @@ await db.transaction(async db => {
 }, { retries: 1 })
 ```
 If this transaction is the loser of a deadlock, it will retry the whole transaction once, including refetching the `getrow` statement.
+
+### Transactions across multiple functions
+
+When a transaction spans multiple function calls, you need to pass the transaction's `db` object into those functions — otherwise they'll use the global pool and run outside the transaction, which often leads to deadlocks or integrity problems. **Never call any database-backed functions that don't accept a `db` parameter, even read-only functions**.
+
+The `Queryable` type covers both the pool (`Db`) and a transaction connection, so you can write functions that work either way:
+
+```typescript
+import Db, { type Queryable } from 'mysql2-async'
+import db from 'mysql2-async/db'
+
+// This function works both inside and outside a transaction.
+// I made `forUpdate` a parameter because sometimes you'd be in a transaction where you
+// don't need to lock the account.
+async function getAccount(id: number, txDb: Queryable = db, forUpdate = false) {
+  const isTx = !(txDb instanceof Db) // discover whether you're in a transaction, if it matters
+  return await txDb.getrow(`SELECT * FROM accounts WHERE id=?${forUpdate ? ' FOR UPDATE' : ''}`, [id])
+}
+
+// Usage outside a transaction:
+const account = await getAccount(42)
+
+// Usage inside a transaction — the same connection is used throughout:
+await db.transaction(async db => {
+  const account = await getAccount(42, db, true)
+  await db.update('UPDATE accounts SET balance=? WHERE id=?', [account.balance - 100, 42])
+})
+```
+
+If a function does multiple writes and must be atomic, it should start its own transaction when called outside one, but join an existing transaction when one is already in progress:
+
+```typescript
+async function fixAccountName(id: number, txDb: Queryable = db) {
+  const action = async (db: Queryable) => {
+    const account = await db.getrow('SELECT * FROM accounts WHERE id=? FOR UPDATE', [id])
+    const fixedName = account.name.trim().toLowerCase()
+    await db.update('UPDATE accounts SET name=? WHERE id=?', [fixedName, id])
+  }
+
+  // If txDb is the pool (Db), start a new transaction.
+  if (txDb instanceof Db) return await txDb.transaction(action)
+  // If txDb is already a transaction connection, just run directly.
+  else return await action(txDb)
+}
+```
 
 ## Prepared Statements
 Prepared statements are nearly automatic, you just need to notate which queries need it. It's desirable to
@@ -255,3 +300,5 @@ for await (const row of stream) {
   // `row` is a `Book`
 }
 ```
+## AI-Assisted Coding
+A `SKILL.md` file is included in the root of this git repo. Use it in your project to teach the LLM how to use this library. Uses fewer context tokens than this README.
