@@ -58,11 +58,11 @@ export class Queryable {
     try {
       const start = this.options.logQueries ? new Date().getTime() : undefined
       if (options?.saveAsPrepared) {
-        const [result] = await this.promiseConn.execute({ ...options, sql, values: binds })
+        const [result] = await this.promiseConn.execute({ ...options, sql, values: binds as any })
         this.options.logQueries?.(sql, new Date().getTime() - start!, 'affectedRows' in result ? result.affectedRows : 0)?.catch(console.error)
         return result
       } else {
-        const [result] = await this.promiseConn.query({ ...options, sql, values: binds })
+        const [result] = await this.promiseConn.query({ ...options, sql, values: binds as any })
         this.options.logQueries?.(sql, new Date().getTime() - start!, 'affectedRows' in result ? result.affectedRows : 0)?.catch(console.error)
         return result
       }
@@ -115,7 +115,7 @@ export class Queryable {
   protected feedStream<ReturnType> (stream: GenericReadable<ReturnType>, sql: string, binds: BindInput, options: QueryOptions = {}) {
     if (stream.destroyed) return
 
-    const req = options?.saveAsPrepared ? (this.conn as any).execute({ ...options, sql, values: binds }) : this.conn.query({ ...options, sql, values: binds })
+    const req = options?.saveAsPrepared ? (this.conn as any).execute({ ...options, sql, values: binds as any }) : this.conn.query({ ...options, sql, values: binds as any })
     const reqany: any = req
     let canceled = false
     const stacktraceError: { stack?: string } = {}
